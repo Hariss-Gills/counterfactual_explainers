@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "counterfactual_explainers"
+authors = [{ name = "Hariss Ali Gills", email = "h.gills.20@abdn.ac.uk" }]
+description = "An experiment comparing DICE and AIDE (counterfactual explainers) on common metrics."
+requires-python = ">= 3.13.1"
+keywords = ["XAI", "Counterfactuals", "Explanations", "Experiment", "Academia"]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+dynamic = ["version", "readme"]
+
+[tool.setuptools.dynamic]
+version = { attr = "counterfactual_explainers.__version__" }
+readme = { file = ["README.md"], content-type = "text/markdown" }
+
+[project.urls]
+Repository = "https://github.com/Hariss-Gills/counterfactual_explainers.git"
