@@ -1,4 +1,4 @@
-from data.preprocess_data import create_pipeline, get_adult_dataset, get_compas_dataset, get_german_dataset, get_fico_dataset
+from counterfactual_explainers.data.preprocess_data import create_data_transformer, read_dataset, get_compas_dataset
 
 def get_pipeline_stats(df, target_label, scaler='minmax', encode='onehot'):
     target = df[target_label]
@@ -6,7 +6,7 @@ def get_pipeline_stats(df, target_label, scaler='minmax', encode='onehot'):
     categorical_features = features.select_dtypes(include=["object", "category"]).columns
     continuous_features = features.select_dtypes(exclude=["object", "category"]).columns
 
-    preprocessor, target_encoder = create_pipeline(continuous_features, categorical_features, scaler, encode)
+    preprocessor, target_encoder = create_data_transformer(continuous_features, categorical_features, scaler, encode)
 
     num_of_records, num_of_features = features.shape
 
@@ -26,16 +26,16 @@ def get_pipeline_stats(df, target_label, scaler='minmax', encode='onehot'):
 
 
 def main():
-    df, target_label = get_adult_dataset("data/raw_data/adult.csv")
+    df, target_label = read_dataset("adult")
     stats = get_pipeline_stats(df, target_label)
     print(stats)
-    df, target_label = get_compas_dataset("data/raw_data/compas-scores-two-years.csv")
+    df, target_label = get_compas_dataset()
     stats = get_pipeline_stats(df, target_label)
     print(stats)
-    df, target_label = get_fico_dataset("data/raw_data/fico.csv")
+    df, target_label = read_dataset("fico")
     stats = get_pipeline_stats(df, target_label)
     print(stats)
-    df, target_label = get_german_dataset("data/raw_data/german_credit.csv")
+    df, target_label = read_dataset("german_credit")
     stats = get_pipeline_stats(df, target_label)
     print(stats)
 

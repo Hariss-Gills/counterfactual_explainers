@@ -1,0 +1,10 @@
+[adult]
+target_name = "class"
+drop_columns = ["fnlwgt", "education-num"]
+na_values = "?"
+
+[german_credit]
+target_name = "default"
+
+[fico]
+target_name = "RiskPerformance"

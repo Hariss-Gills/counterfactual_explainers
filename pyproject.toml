@@ -19,5 +19,11 @@ dynamic = ["version", "readme"]
 version = { attr = "counterfactual_explainers.__version__" }
 readme = { file = ["README.md"], content-type = "text/markdown" }
 
+[tool.setuptools.package-data]
+"*" = ["*.csv", "*.toml"]
+
+[project.scripts]
+dataset_stats = "counterfactual_explainers.dataset_stats:main"
+
 [project.urls]
 Repository = "https://github.com/Hariss-Gills/counterfactual_explainers.git"
