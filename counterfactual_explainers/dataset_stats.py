@@ -49,7 +49,8 @@ def main():
     stats_compas = get_pipeline_stats(data_compas)
     print(stats_compas)
     data_fico = read_dataset("fico")
-    stats_fico = get_pipeline_stats(data_fico, encode="ordinal")
+    # TODO: ignore num_encoded_features here
+    stats_fico = get_pipeline_stats(data_fico)
     print(stats_fico)
     data_german = read_dataset("german_credit")
     stats_german = get_pipeline_stats(data_german)
