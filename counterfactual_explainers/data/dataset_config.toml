@@ -1,10 +1,29 @@
 [adult]
 target_name = "class"
+non_act_cols = [
+    "age",
+    "education",
+    "marital-status",
+    "relationship",
+    "race",
+    "sex",
+    "native-country",
+]
 drop_columns = ["fnlwgt", "education-num"]
 na_values = "?"
 
 [german_credit]
 target_name = "default"
+non_act_cols = [
+    "age",
+    "people_under_maintenance",
+    "credit_history",
+    "purpose",
+    "sex",
+    "housing",
+    "foreign_worker",
+]
 
 [fico]
 target_name = "RiskPerformance"
+non_act_cols = ["ExternalRiskEstimate"]
