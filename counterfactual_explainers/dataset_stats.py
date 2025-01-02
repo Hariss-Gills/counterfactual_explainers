@@ -1,4 +1,6 @@
-from pandas.core.arrays import categorical
+from importlib.resources import path
+
+from toml import load
 
 from counterfactual_explainers.data.preprocess_data import (
     create_data_transformer,
@@ -42,19 +44,20 @@ def get_pipeline_stats(data, scaler="minmax", encode="onehot"):
 
 
 def main():
-    data_adult = read_dataset("adult")
-    stats_adult = get_pipeline_stats(data_adult)
-    print(stats_adult)
+    with path(
+        "counterfactual_explainers.data", "dataset_config.toml"
+    ) as toml_path:
+        config = load(toml_path)
+
+    # TODO: ignore num_encoded_features dataset here
+    for dataset in config:
+        data = read_dataset(dataset)
+        stats = get_pipeline_stats(data)
+        print(stats)
+
     data_compas = read_compas_dataset()
     stats_compas = get_pipeline_stats(data_compas)
     print(stats_compas)
-    data_fico = read_dataset("fico")
-    # TODO: ignore num_encoded_features here
-    stats_fico = get_pipeline_stats(data_fico)
-    print(stats_fico)
-    data_german = read_dataset("german_credit")
-    stats_german = get_pipeline_stats(data_german)
-    print(stats_german)
 
 
 if __name__ == "__main__":
