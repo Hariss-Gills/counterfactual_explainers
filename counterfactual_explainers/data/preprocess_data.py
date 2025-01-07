@@ -1,8 +1,8 @@
-from importlib.resources import path
+from importlib.resources import files
+from tomllib import load
 
 import numpy as np
 import pandas as pd
-import toml
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
@@ -16,26 +16,26 @@ from sklearn.preprocessing import (
 
 
 def read_dataset(dataset_name):
-    with path(
-        "counterfactual_explainers.data", "dataset_config.toml"
-    ) as toml_path:
-        config = toml.load(toml_path)
+    package = files("counterfactual_explainers")
+    toml_path = package / "config.toml"
+    with toml_path.open("rb") as file:
+        config = load(file)
 
-    if dataset_name not in config:
+    if dataset_name not in config["dataset"]:
         raise ValueError(
             f"Dataset configuration for '{dataset_name}' not found."
         )
 
-    dataset_config = config[dataset_name]
+    dataset_config = config["dataset"][dataset_name]
     drop_columns = dataset_config.get("drop_columns", [])
     na_values = dataset_config.get("na_values", None)
     target_label = dataset_config.get("target_name")
     non_act_features = dataset_config.get("non_act_cols")
 
-    with path(
-        "counterfactual_explainers.data.raw_data", f"{dataset_name}.csv"
-    ) as csv_path:
-        df = pd.read_csv(csv_path, skipinitialspace=True, na_values=na_values)
+    package = files("counterfactual_explainers.data.raw_data")
+    csv_path = package / f"{dataset_name}.csv"
+    with csv_path.open("rb") as file:
+        df = pd.read_csv(file, skipinitialspace=True, na_values=na_values)
 
     df.drop(columns=drop_columns, errors="ignore", inplace=True)
 
@@ -59,11 +59,10 @@ def read_dataset(dataset_name):
 # TODO: Should this dataset really be this manipulated?
 def read_compas_dataset():
     target_label = "class"
-    with path(
-        "counterfactual_explainers.data.raw_data",
-        "compas-scores-two-years.csv",
-    ) as csv_path:
-        df = pd.read_csv(csv_path, skipinitialspace=True)
+    package = files("counterfactual_explainers.data.raw_data")
+    csv_path = package / "compas-scores-two-years.csv"
+    with csv_path.open("rb") as file:
+        df = pd.read_csv(file, skipinitialspace=True)
 
     columns = [
         "age",

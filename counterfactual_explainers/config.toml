@@ -1,0 +1,50 @@
+[model.RF]
+max_depth = ["", 2, 4, 6, 8, 10, 12, 16]
+class_weight = ["", "balanced"]
+n_estimators = [8, 16, 32, 64, 128, 256, 512, 1024]
+min_samples_split = [2, 0.002, 0.01, 0.05, 0.1, 0.2]
+min_samples_leaf = [1, 0.001, 0.01, 0.05, 0.1, 0.2]
+random_state = [0]
+
+[model.DNN]
+model__dropout_0 = ["", 0.75, 0.5, 0.3, 0.25, 0.1, 0.05, 0.01]
+model__dropout_1 = ["", 0.75, 0.5, 0.3, 0.25, 0.1, 0.05, 0.01]
+model__dropout_2 = ["", 0.75, 0.5, 0.3, 0.25, 0.1, 0.05, 0.01]
+model__dim_1 = [1024, 512, 256, 128, 64, 32, 16, 8, 4]
+model__dim_2 = [1024, 512, 256, 128, 64, 32, 16, 8, 4]
+model__activation_0 = ["sigmoid", "tanh", "relu"]
+model__activation_1 = ["sigmoid", "tanh", "relu"]
+model__activation_2 = ["sigmoid", "tanh", "relu"]
+random_state = [0]
+
+[dataset.adult]
+target_name = "class"
+non_act_cols = [
+    "age",
+    "education",
+    "marital-status",
+    "relationship",
+    "race",
+    "sex",
+    "native-country",
+]
+drop_columns = ["fnlwgt", "education-num"]
+na_values = "?"
+
+[dataset.german_credit]
+target_name = "default"
+non_act_cols = [
+    "age",
+    "people_under_maintenance",
+    "credit_history",
+    "purpose",
+    "sex",
+    "housing",
+    "foreign_worker",
+]
+
+[dataset.fico]
+target_name = "RiskPerformance"
+non_act_cols = ["ExternalRiskEstimate"]
+
+[dataset.compas]

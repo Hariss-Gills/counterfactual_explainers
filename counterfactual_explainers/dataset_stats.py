@@ -1,6 +1,5 @@
-from importlib.resources import path
-
-from toml import load
+from importlib.resources import files
+from tomllib import load
 
 from counterfactual_explainers.data.preprocess_data import (
     create_data_transformer,
@@ -44,20 +43,20 @@ def get_pipeline_stats(data, scaler="minmax", encode="onehot"):
 
 
 def main():
-    with path(
-        "counterfactual_explainers.data", "dataset_config.toml"
-    ) as toml_path:
-        config = load(toml_path)
+    package = files("counterfactual_explainers")
+    toml_path = package / "config.toml"
+    with toml_path.open("rb") as file:
+        config = load(file)
 
     # TODO: ignore num_encoded_features dataset here
-    for dataset in config:
-        data = read_dataset(dataset)
+    for dataset in config["dataset"]:
+        if dataset == "compas":
+            data = read_compas_dataset()
+        else:
+            data = read_dataset(dataset)
+
         stats = get_pipeline_stats(data)
         print(stats)
-
-    data_compas = read_compas_dataset()
-    stats_compas = get_pipeline_stats(data_compas)
-    print(stats_compas)
 
 
 if __name__ == "__main__":
