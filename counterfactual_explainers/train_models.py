@@ -126,15 +126,17 @@ def main():
                 continuous_features,
                 categorical_features,
             )
-            params = config["model"][model_name]
+            params_model = config["model"][model_name]
+            params_dataset = config["dataset"][dataset]
 
             encoded_features = preprocessor.fit_transform(features)
             encoded_target = target_encoder.fit_transform(target)
             X_train, X_test, y_train, y_test = train_test_split(
                 encoded_features,
                 encoded_target,
-                test_size=0.2,
-                random_state=params["random_state"][0],
+                test_size=params_dataset["test_size"],
+                random_state=params_model["random_state"][0],
+                stratify=encoded_target,
             )
             if model_name == "RF":
                 model = RandomForestClassifier()
@@ -159,7 +161,7 @@ def main():
             print(model_name)
             hyperparam_tuner = RandomizedSearchCV(
                 estimator=model,
-                param_distributions=params,
+                param_distributions=params_model,
                 n_iter=100,
                 cv=5,
                 scoring="f1_macro",
