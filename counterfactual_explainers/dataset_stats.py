@@ -25,8 +25,11 @@ def get_pipeline_stats(data, scaler="minmax", encode="onehot"):
 
     num_of_act = num_of_features - len(non_act_features)
 
-    encoded_features = preprocessor.fit_transform(features)
-    num_encoded_features = encoded_features.shape[1]
+    num_encoded_features = None
+
+    if encode:
+        encoded_features = preprocessor.fit_transform(features)
+        num_encoded_features = encoded_features.shape[1]
 
     target_encoder.fit_transform(target)
     num_labels = len(target_encoder.classes_)
@@ -48,14 +51,18 @@ def main():
     with toml_path.open("rb") as file:
         config = load(file)
 
-    # TODO: ignore num_encoded_features dataset here
+    # TODO: save the stats as a dataframe
     for dataset in config["dataset"]:
         if dataset == "compas":
             data = read_compas_dataset()
         else:
             data = read_dataset(dataset)
 
-        stats = get_pipeline_stats(data)
+        if dataset == "fico":
+            stats = get_pipeline_stats(data, encode=None)
+        else:
+            stats = get_pipeline_stats(data)
+
         print(stats)
 
 

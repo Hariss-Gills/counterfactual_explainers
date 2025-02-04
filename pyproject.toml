@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "counterfactual_explainers"
 authors = [{ name = "Hariss Ali Gills", email = "h.gills.20@abdn.ac.uk" }]
 description = "An experiment comparing DICE and AIDE (counterfactual explainers) on common metrics."
-requires-python = ">= 3.12.8"
+requires-python = ">= 3.11.11"
 keywords = ["XAI", "Counterfactuals", "Explanations", "Experiment", "Academia"]
 classifiers = [
     "Intended Audience :: Science/Research",

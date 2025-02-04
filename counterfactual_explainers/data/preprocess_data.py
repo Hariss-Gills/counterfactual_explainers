@@ -56,7 +56,7 @@ def read_dataset(dataset_name):
     }
 
 
-# TODO: Should this dataset really be this manipulated?
+# NOTE: Should this dataset really be this manipulated?
 def read_compas_dataset():
     target_label = "class"
     package = files("counterfactual_explainers.data.raw_data")
@@ -121,45 +121,39 @@ def read_compas_dataset():
     }
 
 
-# TODO: Maybe using KNNImputer and IterativeImputer
+# NOTE: Maybe using KNNImputer and IterativeImputer
 # for such rows would be better?
+
+
+# WARNING: I need to return a ColumnTransformer here instead of a pipeline
+# since the dataset stats are independant of a classifier which a pipeline needs
+# to determine number of classes.
 def create_data_transformer(
     continuous_features, categorical_features, scaler="minmax", encode="onehot"
 ):
-    """
-    Creates a Scikit-learn pipeline for preprocessing continuous
-    and categorical features.
-
-    Parameters:
-        continuous_features (list): Indices or names of continuous features.
-        categorical_features (list): Indices or names of categorical features.
-        scaler (str): Type of scaler to use ('minmax' or 'standard').
-        encode (str): Encoding method for categorical features
-        ('onehot' or 'ordinal').
-
-    Returns:
-        Pipeline: A Scikit-learn pipeline for preprocessing.
-    """
-
     steps_cont = [("imputer", SimpleImputer(strategy="mean"))]
 
-    if scaler == "minmax":
-        steps_cont.append(("scaler", MinMaxScaler()))
-    elif scaler == "standard":
-        steps_cont.append(("scaler", StandardScaler()))
-    else:
-        raise ValueError(f"Unknown scaler: {scaler}")
+    if scaler is not None:
+        if scaler == "minmax":
+            steps_cont.append(("scaler", MinMaxScaler()))
+        elif scaler == "standard":
+            steps_cont.append(("scaler", StandardScaler()))
+        else:
+            raise ValueError(f"Unknown scaler: {scaler}")
 
     continuous_transformer = Pipeline(steps=steps_cont)
 
     steps_cat = [("imputer", SimpleImputer(strategy="most_frequent"))]
 
-    if encode == "onehot":
-        steps_cat.append(("encoder", OneHotEncoder(handle_unknown="ignore")))
-    elif encode == "ordinal":
-        steps_cat.append(("encoder", OrdinalEncoder()))
-    else:
-        raise ValueError(f"Unknown encoding: {encode}")
+    if encode is not None:
+        if encode == "onehot":
+            steps_cat.append(
+                ("encoder", OneHotEncoder(handle_unknown="ignore"))
+            )
+        elif encode == "ordinal":
+            steps_cat.append(("encoder", OrdinalEncoder()))
+        else:
+            raise ValueError(f"Unknown encoding: {encode}")
 
     categorical_transformer = Pipeline(steps=steps_cat)
     preprocessor = ColumnTransformer(
@@ -170,3 +164,14 @@ def create_data_transformer(
     )
 
     return preprocessor, LabelEncoder()
+
+
+def clean_config(data):
+    if isinstance(data, dict):
+        return {k: clean_config(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [clean_config(item) for item in data]
+    elif data == "":
+        return None
+    else:
+        return data

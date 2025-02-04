@@ -1,7 +1,11 @@
+import random
 from importlib.resources import files
+from pathlib import Path
 from tomllib import load
 
+import numpy as np
 import pandas as pd
+import tensorflow as tf
 from joblib import dump
 from keras.layers import Dense, Dropout
 from keras.models import Sequential
@@ -9,56 +13,17 @@ from scikeras.wrappers import KerasClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import RandomizedSearchCV, train_test_split
+from sklearn.pipeline import Pipeline
 
 from counterfactual_explainers.data.preprocess_data import (
+    clean_config,
     create_data_transformer,
     read_compas_dataset,
     read_dataset,
 )
 
 
-def replace_empty_with_none(data):
-    if isinstance(data, dict):
-        return {k: replace_empty_with_none(v) for k, v in data.items()}
-    elif isinstance(data, list):
-        return [replace_empty_with_none(item) for item in data]
-    elif data == "":
-        return None
-    else:
-        return data
-
-
-# PARAMS = {
-#     "RF": {
-#         "n_estimators": [8, 16, 32, 64, 128, 256, 512, 1024],
-#         "min_samples_split": [2, 0.002, 0.01, 0.05, 0.1, 0.2],
-#         "min_samples_leaf": [1, 0.001, 0.01, 0.05, 0.1, 0.2],
-#         "max_depth": [None, 2, 4, 6, 8, 10, 12, 16],
-#         "class_weight": [None, "balanced"],
-#         "random_state": [0],
-#     },
-#     # TODO: What are the best options to choose
-#     "DNN": {
-#         "model__dim_1": [1024, 512, 256, 128, 64, 32, 16, 8, 4],
-#         "model__dim_2": [1024, 512, 256, 128, 64, 32, 16, 8, 4],
-#         "model__activation_0": ["sigmoid", "tanh", "relu"],
-#         "model__activation_1": ["sigmoid", "tanh", "relu"],
-#         "model__activation_2": ["sigmoid", "tanh", "relu"],
-#         "model__dropout_0": [None, 0.75, 0.5, 0.25, 0.1, 0.05, 0.01],
-#         "model__dropout_1": [None, 0.75, 0.5, 0.25, 0.1, 0.05, 0.01],
-#         "model__dropout_2": [None, 0.75, 0.5, 0.25, 0.1, 0.05, 0.01],
-#         # "batch_size": [32, 64, 128],
-#         # "epochs": [50, 100],
-#         # "optimizer": ["adam", "sgd", "rmsprop"],
-#         # "optimizer__learning_rate": [0.001, 0.01],
-#         "random_state": [0],
-#     },
-# }
-#
-# RANDOM_STATE = 0
-
-
-# NOTE: The paper never tunes the model which is strange
+# NOTE: The literature review never tunes the model which is strange
 # Also it only uses RandomizedSearchCV
 def build_dnn(
     dim_0,
@@ -98,7 +63,6 @@ def build_dnn(
         model.add(Dropout(dropout_2))
 
     model.add(Dense(dim_out, activation="sigmoid"))
-
     return model
 
 
@@ -108,7 +72,7 @@ def main():
     with toml_path.open("rb") as file:
         config = load(file)
 
-    config = replace_empty_with_none(config)
+    config = clean_config(config)
     results = []
 
     for dataset in config["dataset"]:
@@ -118,6 +82,15 @@ def main():
             data = read_dataset(dataset)
 
         for model_name in config["model"]:
+
+            params_model = config["model"][model_name]
+            params_dataset = config["dataset"][dataset]
+
+            seed = params_model["classifier__random_state"][0]
+            # random.seed(seed)
+            # np.random.seed(seed)
+            # tf.random.set_seed(seed)
+
             continuous_features = data["continuous_features"]
             categorical_features = data["categorical_features"]
             features = data["features"]
@@ -126,21 +99,19 @@ def main():
                 continuous_features,
                 categorical_features,
             )
-            params_model = config["model"][model_name]
-            params_dataset = config["dataset"][dataset]
 
-            encoded_features = preprocessor.fit_transform(features)
-            encoded_target = target_encoder.fit_transform(target)
             X_train, X_test, y_train, y_test = train_test_split(
-                encoded_features,
-                encoded_target,
+                features,
+                target,
                 test_size=params_dataset["test_size"],
-                random_state=params_model["random_state"][0],
-                stratify=encoded_target,
+                random_state=seed,
+                stratify=target,
             )
             if model_name == "RF":
                 model = RandomForestClassifier()
             elif model_name == "DNN":
+                encoded_features = preprocessor.fit_transform(features)
+                target_encoder.fit_transform(target)
                 num_labels = len(target_encoder.classes_)
                 model = KerasClassifier(
                     build_dnn,
@@ -150,7 +121,7 @@ def main():
                         else "categorical_crossentropy"
                     ),
                     optimizer="adam",
-                    dim_0=X_train.shape[1],
+                    dim_0=encoded_features.shape[1],
                     dim_out=1 if num_labels <= 2 else num_labels,
                 )
             else:
@@ -158,22 +129,28 @@ def main():
                     f"Model configuration for '{model_name}' not found."
                 )
 
-            print(model_name)
+            pipeline = Pipeline(
+                steps=[
+                    ("preprocessor", preprocessor),
+                    ("classifier", model),
+                ]
+            )
             hyperparam_tuner = RandomizedSearchCV(
-                estimator=model,
+                estimator=pipeline,
                 param_distributions=params_model,
                 n_iter=100,
                 cv=5,
                 scoring="f1_macro",
                 n_jobs=-1,
+                # random_state=seed,
             )
             hyperparam_tuner.fit(
                 X_train,
                 y_train,
             )
-            best_model = hyperparam_tuner.best_estimator_
-            y_pred_train = best_model.predict(X_train)
-            y_pred_test = best_model.predict(X_test)
+            best_pipeline = hyperparam_tuner.best_estimator_
+            y_pred_train = best_pipeline.predict(X_train)
+            y_pred_test = best_pipeline.predict(X_test)
             result = {
                 "dataset": dataset,
                 "classifier": model_name,
@@ -195,17 +172,20 @@ def main():
             results.append(result)
 
             # NOTE: Keras .save() is better for performance with KerasClassifier
-            model_path = csv_path = package / "models"
+            model_path = Path("./models")
+            model_path.mkdir(parents=True, exist_ok=True)
             if model_name == "DNN":
                 model_path = model_path / f"{model_name}_{dataset}.keras"
+                best_model = best_pipeline.named_steps["classifier"]
                 best_model.model_.save(model_path)
             else:
                 model_path = model_path / f"{model_name}_{dataset}.pkl"
-                dump(best_model, model_path)
+                dump(best_pipeline, model_path)
 
-    csv_path = package / "results" / "training.csv"
+    results_path = Path("./results")
+    results_path.mkdir(parents=True, exist_ok=True)
     df_results = pd.DataFrame(results)
-    df_results.to_csv(csv_path, index=False)
+    df_results.to_csv(results_path / "training.csv", index=False)
     print(df_results)
 
 
