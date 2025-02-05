@@ -1,0 +1,4 @@
+age,workclass,education,marital-status,occupation,relationship,race,sex,capital-gain,capital-loss,hours-per-week,native-country,class
+56,Local-gov,Some-college,Married-spouse-absent,Farming-fishing,Not-in-family,Black,Male,82481,0,50,United-States,>50K
+56,Self-emp-inc,Some-college,Married-spouse-absent,Farming-fishing,Not-in-family,Black,Male,82481,0,50,United-States,>50K
+56,State-gov,Some-college,Married-spouse-absent,Tech-support,Not-in-family,Black,Male,9082,1196,70,United-States,>50K

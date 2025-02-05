@@ -51,4 +51,5 @@ non_act_cols = ["ExternalRiskEstimate"]
 test_size = 0.3
 
 [dataset.compas]
+target_name = "class"
 test_size = 0.3

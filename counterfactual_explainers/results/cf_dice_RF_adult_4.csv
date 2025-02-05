@@ -1,0 +1,5 @@
+age,workclass,education,marital-status,occupation,relationship,race,sex,capital-gain,capital-loss,hours-per-week,native-country,class
+56,Never-worked,Some-college,Married-spouse-absent,Craft-repair,Not-in-family,Black,Male,22559,0,50,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,22559,0,46,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Armed-Forces,Not-in-family,Black,Male,22559,0,52,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Other-service,Not-in-family,Black,Male,22559,0,46,United-States,>50K

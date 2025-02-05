@@ -172,7 +172,7 @@ def main():
             results.append(result)
 
             # NOTE: Keras .save() is better for performance with KerasClassifier
-            model_path = Path("./models")
+            model_path = Path("./counterfactual_explainers/models")
             model_path.mkdir(parents=True, exist_ok=True)
             if model_name == "DNN":
                 model_path = model_path / f"{model_name}_{dataset}.keras"
@@ -182,7 +182,7 @@ def main():
                 model_path = model_path / f"{model_name}_{dataset}.pkl"
                 dump(best_pipeline, model_path)
 
-    results_path = Path("./results")
+    results_path = Path("./counterfactual_explainers/results")
     results_path.mkdir(parents=True, exist_ok=True)
     df_results = pd.DataFrame(results)
     df_results.to_csv(results_path / "training.csv", index=False)

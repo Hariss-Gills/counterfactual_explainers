@@ -1,0 +1,9 @@
+age,workclass,education,marital-status,occupation,relationship,race,sex,capital-gain,capital-loss,hours-per-week,native-country,class
+56,Federal-gov,Some-college,Married-spouse-absent,Farming-fishing,Not-in-family,Black,Male,7449,0,50,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Farming-fishing,Not-in-family,Black,Male,28809,0,50,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,17553,0,1,United-States,>50K
+56,Without-pay,Some-college,Married-spouse-absent,Farming-fishing,Not-in-family,Black,Male,42432,0,50,United-States,>50K
+56,Without-pay,Some-college,Married-spouse-absent,Tech-support,Not-in-family,Black,Male,16932,0,29,United-States,>50K
+56,Self-emp-not-inc,Some-college,Married-spouse-absent,Armed-Forces,Not-in-family,Black,Male,28809,0,1,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Armed-Forces,Not-in-family,Black,Male,16932,0,88,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Exec-managerial,Not-in-family,Black,Male,28809,0,38,United-States,>50K

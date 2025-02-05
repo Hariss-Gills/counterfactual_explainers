@@ -1,0 +1,3 @@
+age,workclass,education,marital-status,occupation,relationship,race,sex,capital-gain,capital-loss,hours-per-week,native-country,class
+56,Never-worked,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,36695,0,50,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Tech-support,Not-in-family,Black,Male,36695,0,1,United-States,>50K

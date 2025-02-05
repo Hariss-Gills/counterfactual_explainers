@@ -1,0 +1,8 @@
+age,sex,race,priors_count,days_b_screening_arrest,c_charge_degree,is_recid,is_violent_recid,two_year_recid,length_of_stay,class
+45,Female,Other,22,346,F,0,0,0,103,Medium
+45,Female,Other,19,1008,M,0,0,0,242,Medium
+45,Female,Other,17,450,F,0,0,0,263,Medium
+45,Female,Other,31,306,F,0,0,0,352,Medium
+45,Female,Other,24,553,F,0,0,0,497,Medium
+45,Female,Other,15,546,M,1,0,0,36,Medium
+45,Female,Other,23,346,M,0,1,0,359,Medium

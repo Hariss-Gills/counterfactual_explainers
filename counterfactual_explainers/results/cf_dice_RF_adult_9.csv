@@ -1,0 +1,10 @@
+age,workclass,education,marital-status,occupation,relationship,race,sex,capital-gain,capital-loss,hours-per-week,native-country,class
+56,Federal-gov,Some-college,Married-spouse-absent,Armed-Forces,Not-in-family,Black,Male,10991,0,48,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Protective-serv,Not-in-family,Black,Male,11689,0,52,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Handlers-cleaners,Not-in-family,Black,Male,17161,0,48,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Armed-Forces,Not-in-family,Black,Male,17161,0,48,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,31497,0,30,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,31925,0,30,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Handlers-cleaners,Not-in-family,Black,Male,17161,0,30,United-States,>50K
+56,Without-pay,Some-college,Married-spouse-absent,Armed-Forces,Not-in-family,Black,Male,10991,0,89,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Exec-managerial,Not-in-family,Black,Male,10991,0,89,United-States,>50K

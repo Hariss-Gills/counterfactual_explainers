@@ -1,0 +1,17 @@
+age,workclass,education,marital-status,occupation,relationship,race,sex,capital-gain,capital-loss,hours-per-week,native-country,class
+56,Local-gov,Some-college,Married-spouse-absent,Farming-fishing,Not-in-family,Black,Male,16539,0,50,United-States,>50K
+56,State-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,16539,0,48,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Farming-fishing,Not-in-family,Black,Male,18110,0,50,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Tech-support,Not-in-family,Black,Male,18110,0,50,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,41853,0,50,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Machine-op-inspct,Not-in-family,Black,Male,24245,0,50,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Machine-op-inspct,Not-in-family,Black,Male,26346,0,50,United-States,>50K
+56,State-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,10754,0,97,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,16539,0,16,United-States,>50K
+56,Self-emp-not-inc,Some-college,Married-spouse-absent,Other-service,Not-in-family,Black,Male,55247,0,50,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Tech-support,Not-in-family,Black,Male,16539,0,48,United-States,>50K
+56,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,41853,0,1,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,26346,0,15,United-States,>50K
+56,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,41853,807,50,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,61696,0,50,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Craft-repair,Not-in-family,Black,Male,41853,0,50,United-States,>50K
