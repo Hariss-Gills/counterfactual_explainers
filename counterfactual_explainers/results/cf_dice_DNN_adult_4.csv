@@ -1,0 +1,5 @@
+age,capital-gain,capital-loss,hours-per-week,workclass,education,marital-status,occupation,relationship,race,sex,native-country,class
+56.0,69479.2,3508.2,22.7,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,United-States,0.977
+56.0,92161.7,3028.1,49.2,Federal-gov,Some-college,Married-spouse-absent,Tech-support,Not-in-family,Black,Male,United-States,0.995
+56.0,58908.0,107.3,62.2,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,United-States,0.925
+56.0,50847.8,0.0,93.6,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,United-States,0.916
