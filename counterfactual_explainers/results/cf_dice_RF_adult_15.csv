@@ -1,0 +1,16 @@
+age,workclass,education,marital-status,occupation,relationship,race,sex,capital-gain,capital-loss,hours-per-week,native-country,class
+56,Self-emp-not-inc,Some-college,Married-spouse-absent,Sales,Not-in-family,Black,Male,16162,0,50,United-States,>50K
+56,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,16162,0,61,United-States,>50K
+56,nan,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,25587,0,50,United-States,>50K
+56,Self-emp-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,29256,0,50,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,16162,0,45,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,16162,0,60,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,17930,0,55,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,16162,0,35,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,41590,0,50,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,41590,0,50,United-States,>50K
+56,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,33340,0,78,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,17930,0,35,United-States,>50K
+56,Local-gov,Some-college,Married-spouse-absent,Armed-Forces,Not-in-family,Black,Male,25587,0,50,United-States,>50K
+56,Never-worked,Some-college,Married-spouse-absent,Exec-managerial,Not-in-family,Black,Male,25587,0,50,United-States,>50K
+56,Federal-gov,Some-college,Married-spouse-absent,Transport-moving,Not-in-family,Black,Male,25587,0,50,United-States,>50K

@@ -1,0 +1,7 @@
+ExternalRiskEstimate,MSinceOldestTradeOpen,MSinceMostRecentTradeOpen,AverageMInFile,NumSatisfactoryTrades,NumTrades60Ever2DerogPubRec,NumTrades90Ever2DerogPubRec,PercentTradesNeverDelq,MSinceMostRecentDelq,MaxDelq2PublicRecLast12M,MaxDelqEver,NumTotalTrades,NumTradesOpeninLast12M,PercentInstallTrades,MSinceMostRecentInqexcl7days,NumInqLast6M,NumInqLast6Mexcl7days,NetFractionRevolvingBurden,NetFractionInstallBurden,NumRevolvingTradesWBalance,NumInstallTradesWBalance,NumBank2NatlTradesWHighUtilization,PercentTradesWBalance,RiskPerformance
+-9.0,345.2,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,7.9,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,0.729
+-9.0,209.7,-9.0,80.4,21.3,-9.0,-9.0,-9.0,-9.0,-9.0,0.2,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,0.737
+-9.0,318.9,-9.0,-6.9,68.3,-9.0,-9.0,-9.0,-9.0,-9.0,-8.9,-9.0,-9.0,-9.0,-8.9,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,0.74
+-9.0,709.2,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,0.746
+-9.0,399.3,-9.0,158.8,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,0.729
+-9.0,469.5,-9.0,-7.1,-8.2,-9.0,-9.0,-9.0,-9.0,-8.9,-8.4,-9.0,-9.0,-9.0,4.6,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,-9.0,0.74
