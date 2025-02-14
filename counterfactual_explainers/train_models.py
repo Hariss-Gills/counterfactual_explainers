@@ -175,17 +175,17 @@ def main():
             model_path = Path("./counterfactual_explainers/models")
             model_path.mkdir(parents=True, exist_ok=True)
             if model_name == "DNN":
-                model_path = model_path / f"{model_name}_{dataset}.keras"
+                model_path = model_path / f"{model_name}_AIDE_{dataset}.keras"
                 best_model = best_pipeline.named_steps["classifier"]
                 best_model.model_.save(model_path)
             else:
-                model_path = model_path / f"{model_name}_{dataset}.pkl"
+                model_path = model_path / f"{model_name}_AIDE_{dataset}.pkl"
                 dump(best_pipeline, model_path)
 
     results_path = Path("./counterfactual_explainers/results")
     results_path.mkdir(parents=True, exist_ok=True)
     df_results = pd.DataFrame(results)
-    df_results.to_csv(results_path / "training.csv", index=False)
+    df_results.to_csv(results_path / "training_AIDE.csv", index=False)
     print(df_results)
 
 
