@@ -892,7 +892,7 @@ def read_adult_dataset(dataset_name):
     type_features, features_type = recognize_features_type(df, class_name)
     df = pd.concat([features, target], axis=1)
 
-    invariants = []
+    invariants = non_act_features
     binners = []
     label_encoders = []
     use_dummies = True
@@ -930,13 +930,10 @@ def read_adult_dataset(dataset_name):
     df_X.columns = df_X.columns.str.replace(
         r"^(continuous__|categorical__)", "", regex=True
     )
-    print(df_X.columns)
 
     # ohe = preprocessor.named_transformers_["categorical"].named_steps[
     # "encoder"
     # ]
-    # print(f"Yo:{ohe_feature_names}")
-    print(f"Yah: {feature_names}")
 
     feature_names = np.array(
         [
@@ -944,13 +941,10 @@ def read_adult_dataset(dataset_name):
             for name in feature_names
         ]
     )
-    print(feature_names)
     dummy = {}
     for column in non_continuous:
         mask = np.array([fn.startswith(column) for fn in feature_names])
         dummy[column] = feature_names[mask]
-
-    print(dummy)
 
     dataset = {
         "name": dataset_name,
@@ -1124,13 +1118,6 @@ def read_adult_dataset(dataset_name):
         "use_dummies": use_dummies,
     }
 
-    # print(dataset)
-
-    pickle_filename = "adult_pickled_data.p"
-    outfile = open(pickle_filename, "wb")
-    pickle.dump(dataset, outfile)
-    outfile.close()
-
     return dataset
 
 
@@ -1193,7 +1180,8 @@ def process_adult():
     # need a unenencoded/scaled dataset for dcf and dce moved below loan status to int
     # df_dce still has arr_state and years_of credit, if used again will need removing
 
-    invariants = []
+    invariants = non_act_cols
+    print(type(non_act_cols))
     binners = []
     label_encoders = []
     use_dummies = True
@@ -1415,13 +1403,6 @@ def process_adult():
         "y": target,  # np array #removed to shrink size of dataset obj
         "use_dummies": use_dummies,
     }
-
-    print(dataset)
-
-    pickle_filename = "adult_pickled_data.p"
-    outfile = open(pickle_filename, "wb")
-    pickle.dump(dataset, outfile)
-    outfile.close()
 
     return dataset
 
