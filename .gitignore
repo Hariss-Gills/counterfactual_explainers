@@ -172,3 +172,7 @@ cython_debug/
 
 # Ignore all filenames that start with "ignore"
 ignore*
+
+# Ignore this csv file that the AIDE algo creates
+# Do this since AIDE's code changes minimally. 
+opt-AINet_results.csv
