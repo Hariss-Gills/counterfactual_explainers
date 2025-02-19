@@ -1,2 +1,2 @@
 age,workclass,education,marital-status,occupation,relationship,race,sex,capital-gain,capital-loss,hours-per-week,native-country
-64.0,Local-gov,HS-grad,Divorced,Exec-managerial,Not-in-family,White,Female,99999.0,4030.653748311534,36.93813655461421,United-States
+56.0,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,92065.36676500957,3860.4846510183174,34.58124407079868,United-States

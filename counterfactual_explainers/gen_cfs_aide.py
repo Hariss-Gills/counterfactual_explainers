@@ -3,18 +3,40 @@ from pathlib import Path
 from tomllib import load
 
 import pandas as pd
-from dice_ml import Data, Dice, Model
-from dice_ml.dice import UserConfigValidationException
-from joblib import load as load_scikit_model
 from keras.models import load_model as load_keras_model
 from sklearn.model_selection import train_test_split
 
+from counterfactual_explainers.aide.aide_explain import init_var_optAINet
+from counterfactual_explainers.aide.prepare_data import (
+    decode_df,
+    get_line_columns,
+    get_prob_dict,
+)
+from counterfactual_explainers.aide.prepare_data import (
+    read_adult_dataset as aide_read_adult,
+)
 from counterfactual_explainers.data.preprocess_data import (
     clean_config,
-    create_data_transformer,
     read_compas_dataset,
     read_dataset,
 )
+
+results_path = Path("./counterfactual_explainers/results")
+
+parameter_dict = {
+    "sort_by": "distance",
+    "use_mads": True,
+    "problem_size": 1,
+    "search_space": [0, 1],
+    "max_gens": 5,
+    "pop_size": 20,
+    "num_clones": 10,
+    "beta": 1,
+    "num_rand": 2,
+    "affinity_constant": 0.35,
+    "stop_condition": 0.01,
+    "new_cell_rate": 0.4,
+}
 
 
 # TODO: Metrics like runtime cannot be measured post-hoc
@@ -26,169 +48,112 @@ def main():
         config = load(file)
 
     config = clean_config(config)
+    results_path.mkdir(parents=True, exist_ok=True)
 
     for dataset in config["dataset"]:
         if dataset == "compas":
             data = read_compas_dataset()
-            desired_class = 2
         else:
             data = read_dataset(dataset)
-            desired_class = "opposite"
 
         for model_name in config["model"]:
-            params_model = config["model"][model_name]
-            params_dataset = config["dataset"][dataset]
+            if dataset == "adult" and model_name == "DNN":
+                aide_data_object = aide_read_adult("adult")
 
-            seed = params_model["classifier__random_state"][0]
+                params_model = config["model"][model_name]
+                params_dataset = config["dataset"][dataset]
 
-            continuous_features = data["continuous_features"]
-            categorical_features = data["categorical_features"]
-            non_act_features = data["non_act_features"]
-            features = data["features"]
-            target = data["target"]
+                seed = params_model["classifier__random_state"][0]
 
-            all_feat = features.columns.values.tolist()
-            act_feat = list(set(all_feat) - set(non_act_features))
+                features = data["features"]
+                target = data["target"]
 
-            model = None
-            func = None
-            backend = None
-            method = None
+                # HACK: this is needed so the same query_instance
+                # is chosen for dice and aide.
 
-            if model_name == "RF":
-                model = load_scikit_model(
-                    "counterfactual_explainers/models/"
-                    f"{model_name}_{dataset}.pkl"
-                )
-
-                backend = "sklearn"
-                method = "genetic"
-                func = None
-
-            if model_name == "DNN":
-                preprocessor, target_encoder = create_data_transformer(
-                    continuous_features=continuous_features,
-                    categorical_features=categorical_features,
-                )
-                preprocessor.fit(features)
-                print(preprocessor)
-                cont_imputer = preprocessor.named_transformers_[
-                    "continuous"
-                ].named_steps["imputer"]
-                cat_imputer = preprocessor.named_transformers_[
-                    "categorical"
-                ].named_steps["imputer"]
-
-                new_feat_cont = cont_imputer.fit_transform(
-                    features[continuous_features]
-                )
-
-                new_feat_cont = pd.DataFrame(
-                    new_feat_cont,
-                    columns=continuous_features,
-                    index=features.index,
-                )
-
-                # HACK: this is dirty but
-                # does the job
-                if dataset != "fico":
-                    new_feat_cat = cat_imputer.fit_transform(
-                        features[categorical_features]
+                X_train_df, X_test_df, y_train_df, y_test_df = (
+                    train_test_split(
+                        features,
+                        target,
+                        test_size=params_dataset["test_size"],
+                        random_state=seed,
+                        stratify=target,
                     )
-
-                    new_feat_cat = pd.DataFrame(
-                        new_feat_cat,
-                        columns=categorical_features,
-                        index=features.index,
-                    )
-                    features = pd.concat([new_feat_cont, new_feat_cat], axis=1)
-                else:
-                    features = new_feat_cont
-                transformed_target = target_encoder.fit_transform(target)
-                target = pd.DataFrame(
-                    transformed_target,
-                    columns=[target.name],
-                    index=target.index,
                 )
+
+                X_train, X_test, y_train, y_test = train_test_split(
+                    aide_data_object["X"],
+                    aide_data_object["y"],
+                    test_size=params_dataset["test_size"],
+                    random_state=seed,
+                    stratify=aide_data_object["y"],
+                )
+
+                query_instance = X_test_df.sample(random_state=0)
+                index_in_arr = X_test_df.index.get_loc(query_instance.index[0])
+                encoded_query_instance = X_test[index_in_arr]
+
+                encoded_query_instance_df = pd.DataFrame(
+                    data=encoded_query_instance.reshape(1, -1),
+                    columns=aide_data_object["X_columns_with_dummies"],
+                )
+
+                decoded_query_instance_df = decode_df(
+                    encoded_query_instance_df, aide_data_object
+                )
+
+                # NOTE: This should be the same as dice query_instance
+                decoded_query_instance_df.to_csv(
+                    results_path
+                    / f"cf_aide_{model_name}_{dataset}_query_instance.csv",
+                    index=False,
+                )
+                print(decoded_query_instance_df)
 
                 model = load_keras_model(
                     f"counterfactual_explainers/models/{model_name}"
-                    f"_{dataset}.keras"
+                    f"_AIDE_{dataset}.keras"
                 )
-                backend = "TF2"
-                method = "gradient"
-                func = "ohe-min-max"
 
-            X_train, X_test, y_train, y_test = train_test_split(
-                features,
-                target,
-                test_size=params_dataset["test_size"],
-                random_state=seed,
-                stratify=target,
-            )
+                lime_coeffs_reorder = list()
+                df_out = pd.DataFrame(
+                    columns=get_line_columns(aide_data_object)
+                )
+                db_file = results_path / "ignore_AIDE_demo.db"
+                prob_dict = get_prob_dict(
+                    encoded_query_instance, model, aide_data_object
+                )
 
-            combined_train_df = pd.concat([X_train, y_train], axis=1)
-            dice_data_object = Data(
-                dataframe=combined_train_df,
-                continuous_features=continuous_features.tolist(),
-                outcome_name=params_dataset["target_name"],
-            )
-            dice_model_object = Model(model=model, backend=backend, func=func)
-            dice_exp = Dice(dice_data_object, dice_model_object, method=method)
+                # TODO: find the best way to quantify k after talking to yaji
+                result, df_out = init_var_optAINet(
+                    model,
+                    X_test,
+                    index_in_arr,
+                    aide_data_object,
+                    prob_dict,
+                    db_file,
+                    lime_coeffs_reorder,
+                    df_out,
+                    parameter_dict,
+                )
 
-            # WARNING: this instance for fico RF mostly fails but
-            # should probably be kept. Also if num_required_cfs = 1
-            # it throws a different error, hence catch that here too.
-            # compas DNN always fails too -> no CFs found.
-            query_instance = X_test.sample(random_state=seed)
-            results_path = Path("./counterfactual_explainers/results")
-            results_path.mkdir(parents=True, exist_ok=True)
-            query_instance.to_csv(
-                results_path
-                / f"cf_dice_{model_name}_{dataset}_query_instance.csv",
-                index=False,
-            )
-            print(query_instance)
-            for num_required_cfs in range(1, 21):
-                try:
-                    explanation = dice_exp.generate_counterfactuals(
-                        query_instance,
-                        total_CFs=num_required_cfs,
-                        desired_class=desired_class,
-                        features_to_vary=act_feat,
+                decoded_cfs = decode_df(df_out, aide_data_object)
+
+                if not df_out.empty:
+                    df_out.to_csv(
+                        results_path / f"cf_aide_DNN_adult.csv",
+                        index=False,
                     )
-                    cfs_for_all_queries = explanation.cf_examples_list
-                    cfs = cfs_for_all_queries[
-                        0
-                    ]  # Always have one query instance
-                    results_path = Path("./counterfactual_explainers/results")
-                    results_path.mkdir(parents=True, exist_ok=True)
-                    # df_results = pd.DataFrame(results)
-                    print(cfs.final_cfs_df)
-
-                    # NOTE: need this condtion since it doesn't
-                    # do this check for deep learning methods.
-                    if not cfs.final_cfs_df.empty:
-                        cfs.final_cfs_df.to_csv(
-                            results_path / f"cf_dice_{model_name}_{dataset}"
-                            f"_{num_required_cfs}.csv",
-                            index=False,
-                        )
-                    else:
-                        print(
-                            f"DICE could not find Counterfactuals"
-                            f" for {query_instance}"
-                        )
-                except UserConfigValidationException as error:
-                    if "No counterfactuals found" in str(error):
-                        print(
-                            "DICE could not find Counterfactuals"
-                            f" for {query_instance}"
-                        )
-                except IndexError:
+                    decoded_cfs.to_csv(
+                        results_path / f"cf_aide_DNN_adult_decoded.csv",
+                        index=False,
+                    )
+                    print(decoded_cfs)
+                    print(result)
+                else:
                     print(
-                        "fico failure when num_required_cfs="
-                        f"{num_required_cfs}"
+                        f"AIDE could not find Counterfactuals"
+                        f" for {query_instance}"
                     )
 
 

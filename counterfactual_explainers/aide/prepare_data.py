@@ -4,6 +4,7 @@ import re
 from importlib.resources import files
 from tomllib import load
 
+import keras
 import numpy as np
 import pandas as pd
 
@@ -17,12 +18,69 @@ from sklearn.preprocessing import (
     StandardScaler,
 )
 
+from counterfactual_explainers.aide import predict
 from counterfactual_explainers.data.preprocess_data import (
     clean_config,
     create_data_transformer,
     read_compas_dataset,
     read_dataset,
 )
+
+
+def get_prob_dict(encoded_query_instance, model, dataset):
+    prob_dict = {}
+
+    bb_input_line = keras.ops.expand_dims(encoded_query_instance, axis=0)
+    print(bb_input_line.shape)
+
+    prob = predict.predict_no_reshape(model, bb_input_line)
+    prob_array = np.asarray([1 - prob, prob], dtype=float).reshape(1, -1)
+    prob_pos = 0
+    for outcome in dataset["possible_outcomes"]:
+        prob_dict[outcome] = prob_array[0][prob_pos]
+        prob_pos = prob_pos + 1
+
+    return prob_dict
+
+
+def get_line_columns(dataset):
+    line_columns = dataset["X_columns"]
+    if dataset["use_dummies"] == True:
+        line_columns = dataset["X_columns_with_dummies"]
+    return line_columns
+
+
+def decode_df(df_out, dataset):
+    decoded_df = df_out.copy()
+
+    for feature in dataset["dummy"]:
+        dummy_cols = dataset["dummy"][feature]
+        existing_cols = [
+            col for col in dummy_cols if col in decoded_df.columns
+        ]
+        if not existing_cols:
+            continue
+
+        decoded_df[feature] = decoded_df[existing_cols].idxmax(axis=1)
+        decoded_df[feature] = decoded_df[feature].str.replace(
+            f"{feature}_", "", regex=False
+        )
+        decoded_df.drop(columns=existing_cols, inplace=True)
+
+    if dataset["continuous"]:
+        continuous_cols = [
+            col for col in dataset["continuous"] if col in decoded_df.columns
+        ]
+        if continuous_cols:
+            scaler = dataset["scaler"][dataset["continuous"][0]]
+            scaled_values = decoded_df[continuous_cols].values
+
+            original_values = scaler.inverse_transform(scaled_values)
+            decoded_df[continuous_cols] = original_values
+
+    decoded_df = decoded_df.reindex(columns=dataset["X_columns"])
+
+    return decoded_df
 
 
 # def bucket_mixed_data(dce=False):
