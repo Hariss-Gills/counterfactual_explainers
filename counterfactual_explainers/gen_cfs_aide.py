@@ -28,8 +28,8 @@ parameter_dict = {
     "use_mads": True,
     "problem_size": 1,
     "search_space": [0, 1],
-    "max_gens": 5,
-    "pop_size": 20,
+    "max_gens": 8,
+    "pop_size": 40,
     "num_clones": 10,
     "beta": 1,
     "num_rand": 2,
@@ -103,11 +103,11 @@ def main():
                 )
 
                 # NOTE: This should be the same as dice query_instance
-                # decoded_query_instance_df.to_csv(
-                #     results_path
-                #     / f"cf_aide_{model_name}_{dataset}_query_instance.csv",
-                #     index=False,
-                # )
+                decoded_query_instance_df.to_csv(
+                    results_path
+                    / f"cf_aide_{model_name}_{dataset}_query_instance.csv",
+                    index=False,
+                )
                 print(decoded_query_instance_df)
 
                 model = load_keras_model(
@@ -136,17 +136,12 @@ def main():
                     df_out,
                     parameter_dict,
                 )
-                print(len(df_out))
 
                 decoded_cfs = decode_df(df_out, aide_data_object)
-                return
+
                 if not df_out.empty:
-                    df_out.to_csv(
-                        results_path / f"cf_aide_DNN_adult.csv",
-                        index=False,
-                    )
                     decoded_cfs.to_csv(
-                        results_path / f"cf_aide_DNN_adult_decoded.csv",
+                        results_path / f"cf_aide_{model_name}_{dataset}.csv",
                         index=False,
                     )
                     print(decoded_cfs)

@@ -1,0 +1,2 @@
+age,workclass,education,marital-status,occupation,relationship,race,sex,capital-gain,capital-loss,hours-per-week,native-country
+56.0,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,99999.0,4356.0,37.44079137065044,United-States
