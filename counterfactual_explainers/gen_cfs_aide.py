@@ -23,24 +23,13 @@ from counterfactual_explainers.data.preprocess_data import (
 
 results_path = Path("./counterfactual_explainers/results")
 
-parameter_dict = {
-    "sort_by": "distance",
-    "use_mads": True,
-    "problem_size": 1,
-    "search_space": [0, 1],
-    "max_gens": 8,
-    "pop_size": 40,
-    "num_clones": 10,
-    "beta": 1,
-    "num_rand": 2,
-    "affinity_constant": 0.35,
-    "stop_condition": 0.01,
-    "new_cell_rate": 0.4,
-}
-
 
 # TODO: Metrics like runtime cannot be measured post-hoc
 # So this will have to be done here
+# NOTE: I have to find out why whenever I increase the pop_size
+# the num of cfs always converges to 1. This does not happen in the notebook
+
+
 def main():
     package = files("counterfactual_explainers")
     toml_path = package / "config.toml"
@@ -58,6 +47,7 @@ def main():
 
         for model_name in config["model"]:
             if dataset == "adult" and model_name == "DNN":
+
                 aide_data_object = aide_read_adult("adult")
 
                 params_model = config["model"][model_name]
@@ -123,34 +113,53 @@ def main():
                 prob_dict = get_prob_dict(
                     encoded_query_instance, model, aide_data_object
                 )
+                for num_required_cfs in range(1, 21):
 
-                # TODO: find the best way to quantify k after talking to yaji
-                result, df_out = init_var_optAINet(
-                    model,
-                    X_test,
-                    index_in_arr,
-                    aide_data_object,
-                    prob_dict,
-                    db_file,
-                    lime_coeffs_reorder,
-                    df_out,
-                    parameter_dict,
-                )
-
-                decoded_cfs = decode_df(df_out, aide_data_object)
-
-                if not df_out.empty:
-                    decoded_cfs.to_csv(
-                        results_path / f"cf_aide_{model_name}_{dataset}.csv",
-                        index=False,
+                    # NOTE: this num_required_cfs is very hard to control
+                    # but usually increasing the affinity_constant and pop_size
+                    # does the trick maybe I can try to scale affinity_constant since
+                    # it has more of an effect.
+                    parameter_dict = {
+                        "sort_by": "distance",
+                        "use_mads": True,
+                        "problem_size": 1,
+                        "search_space": [0, 1],
+                        "max_gens": 5,
+                        "pop_size": 8 + (2 * num_required_cfs),
+                        "num_clones": 10,
+                        "beta": 1,
+                        "num_rand": 2,
+                        "affinity_constant": 3.0,
+                        "stop_condition": 0.01,
+                        "new_cell_rate": 1.0,
+                    }
+                    result, df_out = init_var_optAINet(
+                        model,
+                        X_test,
+                        index_in_arr,
+                        aide_data_object,
+                        prob_dict,
+                        db_file,
+                        lime_coeffs_reorder,
+                        df_out,
+                        parameter_dict,
                     )
-                    print(decoded_cfs)
-                    print(result)
-                else:
-                    print(
-                        f"AIDE could not find Counterfactuals"
-                        f" for {query_instance}"
-                    )
+
+                    decoded_cfs = decode_df(df_out, aide_data_object)
+
+                    if not df_out.empty:
+                        decoded_cfs.to_csv(
+                            results_path
+                            / f"cf_aide_{model_name}_{dataset}_{num_required_cfs}.csv",
+                            index=False,
+                        )
+                        print(decoded_cfs)
+                        print(result)
+                    else:
+                        print(
+                            f"AIDE could not find Counterfactuals"
+                            f" for {query_instance}"
+                        )
 
 
 if __name__ == "__main__":

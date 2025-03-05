@@ -4,6 +4,7 @@ from tomllib import load
 
 import numpy as np
 import pandas as pd
+from scipy.sparse import isspmatrix_csr
 from sklearn.model_selection import train_test_split
 
 from counterfactual_explainers.data.preprocess_data import (
@@ -17,9 +18,9 @@ from counterfactual_explainers.data.preprocess_data import (
 # in paper.
 # TODO: Implement calculation with CSR matrices instead
 # NOTE: later calculate Instability, Implausibility, and Discriminative Power
-# So After some checks, it seems that the paper divides counts by non-encoded lengths
+# NOTE: So After some checks, it seems that the paper divides counts by non-encoded lengths
 # this is weird since distances I think are divided by encoded lengths. Or maybe
-# my results simply deviate
+# my results simply deviate a lot.
 
 
 def median_absolute_deviation(cf_row):
@@ -97,8 +98,7 @@ def calc_diversity(
         ),
         axis=1,
     )
-    # print(len(feature_cols))
-    # print(normalization_factor)
+
     diversity_count = np.sum(pairwise_change_counts.to_numpy()) / (
         normalization_factor * len(feature_cols)
     )
@@ -121,163 +121,176 @@ def main():
             data = read_dataset(dataset)
 
         for model_name in config["model"]:
-            results = []
-            for num_required_cfs in range(1, 21):
-                try:
-                    print(f"{model_name}, {dataset}, {num_required_cfs}")
-                    params_model = config["model"][model_name]
-                    params_dataset = config["dataset"][dataset]
-                    #
-                    seed = params_model["classifier__random_state"][0]
-                    continuous_features = data["continuous_features"]
-                    categorical_features = data["categorical_features"]
-                    non_act_features = data["non_act_features"]
-                    features = data["features"]
-                    target = data["target"]
-                    #
-                    preprocessor, target_encoder = create_data_transformer(
-                        continuous_features=continuous_features,
-                        categorical_features=categorical_features,
-                    )
-
-                    dense_matrix = preprocessor.fit_transform(features)
-                    # print(type(transformed_array))
-                    if dataset == "adult":
-                        dense_matrix = dense_matrix.toarray()
-                    # print(type(dense_matrix))
-                    feature_names = preprocessor.get_feature_names_out()
-                    df_scaled = pd.DataFrame(
-                        dense_matrix,
-                        columns=feature_names,
-                        index=features.index,
-                    )
-
-                    X_train, X_test, y_train, y_test = train_test_split(
-                        features,
-                        target,
-                        test_size=params_dataset["test_size"],
-                        random_state=seed,
-                        stratify=target,
-                    )
-                    #
-                    cfs = pd.read_csv(
-                        f"counterfactual_explainers/results/cf_dice_{model_name}_{dataset}_{num_required_cfs}.csv"
-                    )
-
-                    cfs_scaled = preprocessor.transform(cfs[features.columns])
-
-                    if dataset == "adult":
-                        cfs_scaled = cfs_scaled.toarray()
-
-                    cfs_scaled = pd.DataFrame(
-                        cfs_scaled,
-                        columns=preprocessor.get_feature_names_out(),
-                        index=cfs.index,
-                    )
-
-                    query_instance = pd.read_csv(
-                        f"counterfactual_explainers/results/cf_dice_{model_name}_{dataset}_query_instance.csv"
-                    )
-
-                    query_scaled = preprocessor.transform(
-                        query_instance[features.columns]
-                    )
-
-                    if dataset == "adult":
-                        query_scaled = query_scaled.toarray()
-                    query_scaled = pd.DataFrame(
-                        query_scaled,
-                        columns=preprocessor.get_feature_names_out(),
-                        index=query_instance.index,
-                    )
-
-                    X_train_scaled = df_scaled.loc[X_train.index]
-
-                    continuous_columns = df_scaled.columns[
-                        df_scaled.columns.str.startswith("continuous__")
-                    ]
-
-                    categorical_columns = df_scaled.columns[
-                        df_scaled.columns.str.startswith("categorical__")
-                    ]
-
-                    non_act_columns = df_scaled.columns[
-                        df_scaled.columns.str.contains(
-                            "|".join(non_act_features)
+            for explainer in ["aide", "dice"]:
+                results = []
+                for num_required_cfs in range(1, 21):
+                    try:
+                        print(
+                            f"{model_name}, {dataset}, {num_required_cfs}, {explainer}"
                         )
-                    ]
+                        params_model = config["model"][model_name]
+                        params_dataset = config["dataset"][dataset]
+                        #
+                        seed = params_model["classifier__random_state"][0]
+                        continuous_features = data["continuous_features"]
+                        categorical_features = data["categorical_features"]
+                        non_act_features = data["non_act_features"]
+                        features = data["features"]
+                        target = data["target"]
+                        #
+                        preprocessor, _ = create_data_transformer(
+                            continuous_features=continuous_features,
+                            categorical_features=categorical_features,
+                        )
 
-                    # print(non_act_columns)
-                    # print(non_act_features)
+                        encoded_features = preprocessor.fit_transform(features)
 
-                    size = calc_size(num_required_cfs, cfs)
-                    mad = X_train_scaled[continuous_columns].apply(
-                        median_absolute_deviation
-                    )
+                        if isspmatrix_csr(encoded_features):
+                            encoded_features = encoded_features.toarray()
 
-                    dist = cfs_scaled.apply(
-                        distance,
-                        axis=1,
-                        mad=mad,
-                        query_instance=query_scaled,
-                        continuous_features=continuous_columns,
-                        categorical_features=categorical_columns,
-                    )
-                    dis_dist = dist.mean()
+                        feature_names = preprocessor.get_feature_names_out()
+                        features_encoded_df = pd.DataFrame(
+                            encoded_features,
+                            columns=feature_names,
+                            index=features.index,
+                        )
 
-                    dis_changes = cfs_scaled.apply(
-                        calc_changes,
-                        axis=1,
-                        query_instance=query_scaled,
-                        features=df_scaled.columns,
-                    )
-                    dis_count = (dis_changes.mean()) / len(features.columns)
-                    act = (
-                        cfs_scaled.apply(
-                            actionable,
+                        X_train, _, _, _ = train_test_split(
+                            features,
+                            target,
+                            test_size=params_dataset["test_size"],
+                            random_state=seed,
+                            stratify=target,
+                        )
+
+                        cfs = pd.read_csv(
+                            f"counterfactual_explainers/results/cf_{explainer}_{model_name}_{dataset}_{num_required_cfs}.csv"
+                        )
+
+                        cfs = cfs.iloc[:num_required_cfs]
+                        print(cfs)
+
+                        cfs_encoded = preprocessor.transform(
+                            cfs[features.columns]
+                        )
+
+                        if isspmatrix_csr(cfs_encoded):
+                            cfs_encoded = cfs_encoded.toarray()
+
+                        cfs_encoded_df = pd.DataFrame(
+                            cfs_encoded,
+                            columns=preprocessor.get_feature_names_out(),
+                            index=cfs.index,
+                        )
+
+                        query_instance = pd.read_csv(
+                            f"counterfactual_explainers/results/cf_{explainer}_{model_name}_{dataset}_query_instance.csv"
+                        )
+
+                        query_encoded = preprocessor.transform(
+                            query_instance[features.columns]
+                        )
+
+                        if isspmatrix_csr(query_encoded):
+                            query_encoded = query_encoded.toarray()
+
+                        query_encoded_df = pd.DataFrame(
+                            query_encoded,
+                            columns=preprocessor.get_feature_names_out(),
+                            index=query_instance.index,
+                        )
+
+                        X_train_scaled = features_encoded_df.loc[X_train.index]
+
+                        continuous_columns = features_encoded_df.columns[
+                            features_encoded_df.columns.str.startswith(
+                                "continuous__"
+                            )
+                        ]
+
+                        categorical_columns = features_encoded_df.columns[
+                            features_encoded_df.columns.str.startswith(
+                                "categorical__"
+                            )
+                        ]
+
+                        non_act_columns = features_encoded_df.columns[
+                            features_encoded_df.columns.str.contains(
+                                "|".join(non_act_features)
+                            )
+                        ]
+
+                        size = calc_size(num_required_cfs, cfs)
+                        mad = X_train_scaled[continuous_columns].apply(
+                            median_absolute_deviation
+                        )
+
+                        dist = cfs_encoded_df.apply(
+                            distance,
                             axis=1,
-                            query_instance=query_scaled,
-                            non_act_features=non_act_columns,
-                        ).sum()
-                        / num_required_cfs
+                            mad=mad,
+                            query_instance=query_encoded_df,
+                            continuous_features=continuous_columns,
+                            categorical_features=categorical_columns,
+                        )
+                        dis_dist = dist.mean()
+
+                        dis_changes = cfs_encoded_df.apply(
+                            calc_changes,
+                            axis=1,
+                            query_instance=query_encoded_df,
+                            features=features_encoded_df.columns,
+                        )
+                        dis_count = (dis_changes.mean()) / len(
+                            features.columns
+                        )
+                        act = (
+                            cfs_encoded_df.apply(
+                                actionable,
+                                axis=1,
+                                query_instance=query_encoded_df,
+                                non_act_features=non_act_columns,
+                            ).sum()
+                            / num_required_cfs
+                        )
+
+                        div_dist, div_count = calc_diversity(
+                            cfs_encoded_df,
+                            continuous_columns,
+                            categorical_columns,
+                            features_encoded_df.columns,
+                            mad,
+                        )
+
+                        results.append(
+                            {
+                                "num_required_cfs": num_required_cfs,
+                                "Size": size,
+                                "Dissimilarity_distance": dis_dist,
+                                "Dissimilarity_count": dis_count,
+                                "Actionability": act,
+                                "Diversity_distance": div_dist,
+                                "Diversity_count": div_count,
+                            }
+                        )
+
+                    except FileNotFoundError:
+                        print("Not avaliable")
+
+                if results:
+                    results_df = pd.DataFrame(results).set_index(
+                        "num_required_cfs"
                     )
+                    print("Metrics Summary DataFrame:")
+                    print(results_df)
+                    results_path = Path("./counterfactual_explainers/results")
+                    results_path.mkdir(parents=True, exist_ok=True)
 
-                    div_dist, div_count = calc_diversity(
-                        cfs_scaled,
-                        continuous_columns,
-                        categorical_columns,
-                        df_scaled.columns,
-                        mad,
+                    results_df.to_csv(
+                        results_path
+                        / f"cf_{explainer}_{model_name}_{dataset}_"
+                        f"metrics_3.csv",
                     )
-
-                    results.append(
-                        {
-                            "num_required_cfs": num_required_cfs,
-                            "Size": size,
-                            "Dissimilarity_distance": dis_dist,
-                            "Dissimilarity_count": dis_count,
-                            "Actionability": act,
-                            "Diversity_distance": div_dist,
-                            "Diversity_count": div_count,
-                        }
-                    )
-
-                except FileNotFoundError:
-                    print("Not avaliable")
-
-            if results:
-                results_df = pd.DataFrame(results).set_index(
-                    "num_required_cfs"
-                )
-                print("Metrics Summary DataFrame:")
-                print(results_df)
-                results_path = Path("./counterfactual_explainers/results")
-                results_path.mkdir(parents=True, exist_ok=True)
-
-                results_df.to_csv(
-                    results_path / f"cf_dice_{model_name}_{dataset}_"
-                    f"metrics_2.csv",
-                )
 
 
 if __name__ == "__main__":
