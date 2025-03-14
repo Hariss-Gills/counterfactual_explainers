@@ -82,111 +82,118 @@ def main():
             data = read_dataset(dataset)
 
         for model_name in config["model"]:
+            if dataset == "german_credit" and model_name == "DNN":
+                params_model = config["model"][model_name]
+                params_dataset = config["dataset"][dataset]
 
-            params_model = config["model"][model_name]
-            params_dataset = config["dataset"][dataset]
+                seed = params_model["classifier__random_state"][0]
+                # random.seed(seed)
+                # np.random.seed(seed)
+                # tf.random.set_seed(seed)
 
-            seed = params_model["classifier__random_state"][0]
-            # random.seed(seed)
-            # np.random.seed(seed)
-            # tf.random.set_seed(seed)
+                continuous_features = data["continuous_features"]
+                categorical_features = data["categorical_features"]
+                features = data["features"]
+                target = data["target"]
+                preprocessor, target_encoder = create_data_transformer(
+                    continuous_features,
+                    categorical_features,
+                )
 
-            continuous_features = data["continuous_features"]
-            categorical_features = data["categorical_features"]
-            features = data["features"]
-            target = data["target"]
-            preprocessor, target_encoder = create_data_transformer(
-                continuous_features,
-                categorical_features,
-            )
+                X_train, X_test, y_train, y_test = train_test_split(
+                    features,
+                    target,
+                    test_size=params_dataset["test_size"],
+                    random_state=seed,
+                    stratify=target,
+                )
+                if model_name == "RF":
+                    model = RandomForestClassifier()
+                elif model_name == "DNN":
+                    encoded_features = preprocessor.fit_transform(features)
+                    target_encoder.fit_transform(target)
+                    num_labels = len(target_encoder.classes_)
+                    model = KerasClassifier(
+                        build_dnn,
+                        loss=(
+                            "binary_crossentropy"
+                            if num_labels <= 2
+                            else "categorical_crossentropy"
+                        ),
+                        optimizer="adam",
+                        dim_0=encoded_features.shape[1],
+                        dim_out=1 if num_labels <= 2 else num_labels,
+                    )
+                else:
+                    raise ValueError(
+                        f"Model configuration for '{model_name}' not found."
+                    )
 
-            X_train, X_test, y_train, y_test = train_test_split(
-                features,
-                target,
-                test_size=params_dataset["test_size"],
-                random_state=seed,
-                stratify=target,
-            )
-            if model_name == "RF":
-                model = RandomForestClassifier()
-            elif model_name == "DNN":
-                encoded_features = preprocessor.fit_transform(features)
-                target_encoder.fit_transform(target)
-                num_labels = len(target_encoder.classes_)
-                model = KerasClassifier(
-                    build_dnn,
-                    loss=(
-                        "binary_crossentropy"
-                        if num_labels <= 2
-                        else "categorical_crossentropy"
+                pipeline = Pipeline(
+                    steps=[
+                        ("preprocessor", preprocessor),
+                        ("classifier", model),
+                    ]
+                )
+                hyperparam_tuner = RandomizedSearchCV(
+                    estimator=pipeline,
+                    param_distributions=params_model,
+                    n_iter=100,
+                    cv=5,
+                    scoring="f1_macro",
+                    n_jobs=-1,
+                    # random_state=seed,
+                )
+                hyperparam_tuner.fit(
+                    X_train,
+                    y_train,
+                )
+                best_pipeline = hyperparam_tuner.best_estimator_
+                y_pred_train = best_pipeline.predict(X_train)
+                y_pred_test = best_pipeline.predict(X_test)
+                print(y_pred_test)
+                result = {
+                    "dataset": dataset,
+                    "classifier": model_name,
+                    "accuracy_train": accuracy_score(y_train, y_pred_train),
+                    "accuracy_test": accuracy_score(y_test, y_pred_test),
+                    "f1_macro_train": f1_score(
+                        y_train, y_pred_train, average="macro"
                     ),
-                    optimizer="adam",
-                    dim_0=encoded_features.shape[1],
-                    dim_out=1 if num_labels <= 2 else num_labels,
-                )
-            else:
-                raise ValueError(
-                    f"Model configuration for '{model_name}' not found."
-                )
+                    "f1_macro_test": f1_score(
+                        y_test, y_pred_test, average="macro"
+                    ),
+                    "f1_micro_train": f1_score(
+                        y_train, y_pred_train, average="micro"
+                    ),
+                    "f1_micro_test": f1_score(
+                        y_test, y_pred_test, average="micro"
+                    ),
+                }
+                results.append(result)
+                print(result)
 
-            pipeline = Pipeline(
-                steps=[
-                    ("preprocessor", preprocessor),
-                    ("classifier", model),
-                ]
-            )
-            hyperparam_tuner = RandomizedSearchCV(
-                estimator=pipeline,
-                param_distributions=params_model,
-                n_iter=100,
-                cv=5,
-                scoring="f1_macro",
-                n_jobs=-1,
-                # random_state=seed,
-            )
-            hyperparam_tuner.fit(
-                X_train,
-                y_train,
-            )
-            best_pipeline = hyperparam_tuner.best_estimator_
-            y_pred_train = best_pipeline.predict(X_train)
-            y_pred_test = best_pipeline.predict(X_test)
-            result = {
-                "dataset": dataset,
-                "classifier": model_name,
-                "accuracy_train": accuracy_score(y_train, y_pred_train),
-                "accuracy_test": accuracy_score(y_test, y_pred_test),
-                "f1_macro_train": f1_score(
-                    y_train, y_pred_train, average="macro"
-                ),
-                "f1_macro_test": f1_score(
-                    y_test, y_pred_test, average="macro"
-                ),
-                "f1_micro_train": f1_score(
-                    y_train, y_pred_train, average="micro"
-                ),
-                "f1_micro_test": f1_score(
-                    y_test, y_pred_test, average="micro"
-                ),
-            }
-            results.append(result)
-
-            # NOTE: Keras .save() is better for performance with KerasClassifier
-            model_path = Path("./counterfactual_explainers/models")
-            model_path.mkdir(parents=True, exist_ok=True)
-            if model_name == "DNN":
-                model_path = model_path / f"{model_name}_AIDE_{dataset}.keras"
-                best_model = best_pipeline.named_steps["classifier"]
-                best_model.model_.save(model_path)
-            else:
-                model_path = model_path / f"{model_name}_AIDE_{dataset}.pkl"
-                dump(best_pipeline, model_path)
-
-    results_path = Path("./counterfactual_explainers/results")
-    results_path.mkdir(parents=True, exist_ok=True)
-    df_results = pd.DataFrame(results)
-    df_results.to_csv(results_path / "training_AIDE.csv", index=False)
-    print(df_results)
+                # NOTE: Keras .save() is better for performance with KerasClassifier
+                model_path = Path("./counterfactual_explainers/models")
+                model_path.mkdir(parents=True, exist_ok=True)
+                if model_name == "DNN":
+                    model_path = (
+                        model_path / f"{model_name}_AIDE_{dataset}.keras"
+                    )
+                    best_model = best_pipeline.named_steps["classifier"]
+                    best_model.model_.save(model_path)
+                else:
+                    model_path = (
+                        model_path / f"{model_name}_AIDE_{dataset}.pkl"
+                    )
+                    dump(best_pipeline, model_path)
+    #
+    # results_path = Path("./counterfactual_explainers/results")
+    # results_path.mkdir(parents=True, exist_ok=True)
+    # df_results = pd.DataFrame(results)
+    # df_results.to_csv(results_path / "training_AIDE.csv", index=False)
+    # print(df_results)
+    #
 
 
 if __name__ == "__main__":

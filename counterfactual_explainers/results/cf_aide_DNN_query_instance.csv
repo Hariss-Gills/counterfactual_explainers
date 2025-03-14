@@ -1,2 +1,2 @@
-age,workclass,education,marital-status,occupation,relationship,race,sex,capital-gain,capital-loss,hours-per-week,native-country
-56.0,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,0.0,0.0,50.00000000000001,United-States
+age,sex,race,priors_count,days_b_screening_arrest,c_charge_degree,is_recid,is_violent_recid,two_year_recid,length_of_stay
+45.0,Female,Other,0.0,1.0,M,0.0,0.0,0.0,0.0

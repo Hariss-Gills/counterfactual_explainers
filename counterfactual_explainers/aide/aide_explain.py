@@ -68,9 +68,10 @@ def keras_pred(model, line):
     # return array for [prediction for 0, perdiction for 1]
     # keras 3 new line
     # pred = float(predict.predict_2D(model, line)) old line
-
-    pred = float(predict.predict_batch(model, line))
-
+    pred = predict.predict_batch(model, line)
+    # pred = (np.argmax(pred, axis=1) == 0).astype(int)
+    # pred = float(predict.predict_batch(model, line))
+    pred = float(pred)
     pred_array = [1 - pred, pred]
 
     return pred_array
@@ -119,7 +120,7 @@ def new_cell(parameter_dict, dataset, model, prediction, target_vals):
 
     # add new constraint a count that when it reaches a limit just returns a null cell
     count = 0
-    limit = 10
+    limit = 100
     flag = True
     while (
         flag
@@ -181,7 +182,6 @@ def new_cell(parameter_dict, dataset, model, prediction, target_vals):
                         index = index + 1
 
         line = line.reshape(1, -1)
-
         cost = objective_function(line, model, prediction)
         flag = cost_constraint(cost)
         # must rule out cells with a distance of 0
@@ -545,10 +545,26 @@ def get_neighborhood(parameter_dict, reference_cell, pop, aff_thresh, dataset):
     # remove reference cell from pop
     del pop[0]
     out_pop = list()  # cells not in neighbourhood 2013.08.21
-
+    lol = []
     for cell in pop:
         # if distance of population cell less than aff_thresh from reference cell add to neighbourhood
         # should this be add if more than aff_thresh?
+        dist = combined_distance(
+            parameter_dict,
+            reference_cell["value"][0],
+            cell["value"][0],
+            dataset,
+        )
+        print(f"combined_distance: {dist}")
+        lol.append(
+            combined_distance(
+                parameter_dict,
+                reference_cell["value"][0],
+                cell["value"][0],
+                dataset,
+            )
+        )
+        print(f"aff_thresh: {aff_thresh}")
         if (
             combined_distance(
                 parameter_dict,
@@ -561,6 +577,11 @@ def get_neighborhood(parameter_dict, reference_cell, pop, aff_thresh, dataset):
             neighbors.append(cell)
         else:
             out_pop.append(cell)
+
+    print(
+        f"neighbors: {len(neighbors)}, out_pop: {len(out_pop)} pop: {len(pop)}"
+    )
+    # NOTE: I want larger out_pop and less neighbors
     return neighbors, out_pop
 
 
@@ -665,11 +686,14 @@ def search(
         for p in pop:
             if p != None:
                 p["cost"] = objective_function(p["value"], model, prediction)
-            else:
-                pop.remove(p)
+            # else:
+            # pop.remove(p)
         calculate_normalized_distance(pop)
         calculate_normalized_cost(pop)
         pop = sort_by_cost(pop)
+
+        print(f"This is len pop: {len(pop)}")
+
         if best == None:
             best = pop[0]
         else:
@@ -691,6 +715,10 @@ def search(
                     parameter_dict, p, dataset, model, prediction, target_vals
                 )
                 progeny.append(cell)
+            print(f"This is the length progeny {len(progeny)}")
+            test = [x for x in progeny if x is not None]
+
+            print(f"This is the length test {len(test)}")
             if parameter_dict["sort_by"] == "distance":
                 prog_avg_cost = average_distance(progeny)
             elif parameter_dict["sort_by"] == "cost":
@@ -1109,15 +1137,21 @@ def init_var_optAINet(
     prediction = predict_label(
         predict.predict_single(blackbox, X[line_number])
     )
+    print(
+        f"This is pred of query instance {predict.predict_single(blackbox, X[line_number])}"
+    )
     # if outside of a notebook set parameter dict
     if parameter_dict == {}:
         parameter_dict = set_parameter_dict()
 
     line = X[line_number]  # np rows
+    print(f"This is the type {type(X[line_number])}")
     aff_thresh = (
         (parameter_dict["search_space"][1] - parameter_dict["search_space"][0])
         / parameter_dict["affinity_constant"]
     ) / (1 + len(dataset["X_columns"]) - len(dataset["invariants"]))
+
+    print(f"aff_thresh: {aff_thresh}")
     best, df_pop = search(
         parameter_dict, aff_thresh, dataset, blackbox, prediction, line
     )
@@ -1135,7 +1169,7 @@ def init_var_optAINet(
         df_out = df_pop
     else:
         # df_pop = df_out.append(df_pop)
-        df_pop = pd.concat[(df_out, df_pop)]
+        df_pop = pd.concat((df_out, df_pop))
     line_cost = keras_pred(blackbox, line.reshape(1, -1))
 
     # add 0, 0 for distance and cost to line

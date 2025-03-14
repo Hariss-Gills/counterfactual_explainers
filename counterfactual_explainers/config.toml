@@ -35,13 +35,13 @@ test_size = 0.3
 [dataset.german_credit]
 target_name = "default"
 non_act_cols = [
-    "age",
-    "people_under_maintenance",
-    "credit_history",
-    "purpose",
-    "sex",
-    "housing",
-    "foreign_worker",
+    # "age",
+    # "people_under_maintenance",
+    # "credit_history",
+    # "purpose",
+    # "sex",
+    # "housing",
+    # "foreign_worker",
 ]
 test_size = 0.3
 
@@ -52,4 +52,5 @@ test_size = 0.3
 
 [dataset.compas]
 target_name = "class"
+non_act_cols = ["age", "sex", "race"]
 test_size = 0.3
