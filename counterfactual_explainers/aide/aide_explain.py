@@ -68,9 +68,10 @@ def keras_pred(model, line):
     # return array for [prediction for 0, perdiction for 1]
     # keras 3 new line
     # pred = float(predict.predict_2D(model, line)) old line
-
-    pred = float(predict.predict_batch(model, line))
-
+    pred = predict.predict_batch(model, line)
+    # pred = (np.argmax(pred, axis=1) == 0).astype(int)
+    # pred = float(predict.predict_batch(model, line))
+    pred = float(pred)
     pred_array = [1 - pred, pred]
 
     return pred_array
@@ -181,7 +182,6 @@ def new_cell(parameter_dict, dataset, model, prediction, target_vals):
                         index = index + 1
 
         line = line.reshape(1, -1)
-
         cost = objective_function(line, model, prediction)
         flag = cost_constraint(cost)
         # must rule out cells with a distance of 0
@@ -1136,6 +1136,9 @@ def init_var_optAINet(
     # prediction = predict_label(blackbox.predict(X[line_number].reshape(1, -1))) #old line
     prediction = predict_label(
         predict.predict_single(blackbox, X[line_number])
+    )
+    print(
+        f"This is pred of query instance {predict.predict_single(blackbox, X[line_number])}"
     )
     # if outside of a notebook set parameter dict
     if parameter_dict == {}:

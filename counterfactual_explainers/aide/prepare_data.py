@@ -11,6 +11,7 @@ import pandas as pd
 # import prepare_dataset  # from LORE
 from keras import datasets
 from scipy import stats
+from scipy.sparse import isspmatrix_csr
 from sklearn.preprocessing import (
     KBinsDiscretizer,
     LabelEncoder,
@@ -911,6 +912,9 @@ def read_adult_dataset(dataset_name):
     continuous = continuous_features.tolist()
     non_continuous = categorical_features.tolist()
 
+    print(continuous)
+    print(non_continuous)
+
     preprocessor, target_encoder = create_data_transformer(
         continuous_features, categorical_features, "minmax", "onehot"
     )
@@ -924,16 +928,26 @@ def read_adult_dataset(dataset_name):
         "imputer"
     ]
 
-    new_feat_cont = cont_imputer.fit_transform(features[continuous_features])
-    new_feat_cat = cat_imputer.fit_transform(features[categorical_features])
+    # HACK: this is dirty but
+    # does the job
 
+    new_feat_cont = cont_imputer.fit_transform(features[continuous_features])
     new_feat_cont = pd.DataFrame(
         new_feat_cont, columns=continuous_features, index=features.index
     )
-    new_feat_cat = pd.DataFrame(
-        new_feat_cat, columns=categorical_features, index=features.index
-    )
-    features = pd.concat([new_feat_cont, new_feat_cat], axis=1)
+    if dataset_name != "fico":
+        new_feat_cat = cat_imputer.fit_transform(
+            features[categorical_features]
+        )
+
+        new_feat_cat = pd.DataFrame(
+            new_feat_cat,
+            columns=categorical_features,
+            index=features.index,
+        )
+        features = pd.concat([new_feat_cont, new_feat_cat], axis=1)
+    else:
+        features = new_feat_cont
 
     df_dce = pd.concat([features, target], axis=1)
     df_X = df_dce[X_columns]
@@ -980,10 +994,12 @@ def read_adult_dataset(dataset_name):
     # TODO: somehow get dummy dict
 
     transformed_array = preprocessor.transform(features)
-    dense_matrix = transformed_array.toarray()
+    if isspmatrix_csr(transformed_array):
+        transformed_array = transformed_array.toarray()
+
     feature_names = preprocessor.get_feature_names_out()
     df_X = pd.DataFrame(
-        dense_matrix, columns=feature_names, index=features.index
+        transformed_array, columns=feature_names, index=features.index
     )
     df_X.columns = df_X.columns.str.replace(
         r"^(continuous__|categorical__)", "", regex=True
@@ -1179,119 +1195,190 @@ def read_adult_dataset(dataset_name):
     return dataset
 
 
-def process_adult():
-    path = "counterfactual_explainers/data/raw_data/adult.csv"
-    df = pd.read_csv(path, skipinitialspace=True, na_values="?")
+def read_compas_dataset():
+    package = files("counterfactual_explainers")
+    toml_path = package / "config.toml"
+    with toml_path.open("rb") as file:
+        config = load(file)
 
-    X_columns = [
-        "workclass",
+    target_label = "class"
+    package = files("counterfactual_explainers.data.raw_data")
+    csv_path = package / "compas-scores-two-years.csv"
+    with csv_path.open("rb") as file:
+        df = pd.read_csv(file, skipinitialspace=True)
+
+    columns = [
         "age",
-        "marital-status",
-        "occupation",
-        "race",
         "sex",
-        "hours-per-week",
+        "race",
+        "priors_count",
+        "days_b_screening_arrest",
+        "c_jail_in",
+        "c_jail_out",
+        "c_charge_degree",
+        "is_recid",
+        "is_violent_recid",
+        "two_year_recid",
+        "decile_score",
+        "score_text",
     ]
-    y_column = "class"
-    class_name = y_column
 
-    # TODO: do not drop these columns use Imputer instead
-
-    non_continuous = df.select_dtypes(
-        include=["object", "category"]
-    ).columns.tolist()
-
-    non_continuous.remove(class_name)
-
-    print(non_continuous)
-
-    continuous = df.select_dtypes(
-        exclude=["object", "category"]
-    ).columns.tolist()
-
-    print(continuous)
-
-    df = df.dropna(axis=0)
-    df = df.reset_index()
-
-    df = df.drop(
-        labels=[
-            "index",
-            "fnlwgt",
-            "education",
-            "relationship",
-            "capital-gain",
-            "capital-loss",
-            "native-country",
-        ],
+    df = df[columns]
+    df["days_b_screening_arrest"] = np.abs(df["days_b_screening_arrest"])
+    df["c_jail_out"] = pd.to_datetime(df["c_jail_out"])
+    df["c_jail_in"] = pd.to_datetime(df["c_jail_in"])
+    df["length_of_stay"] = (df["c_jail_out"] - df["c_jail_in"]).dt.days
+    df["length_of_stay"] = np.abs(df["length_of_stay"])
+    df["length_of_stay"].fillna(
+        df["length_of_stay"].value_counts().index[0], inplace=True
+    )
+    df["days_b_screening_arrest"].fillna(
+        df["days_b_screening_arrest"].value_counts().index[0], inplace=True
+    )
+    df["length_of_stay"] = df["length_of_stay"].astype(int)
+    df["days_b_screening_arrest"] = df["days_b_screening_arrest"].astype(int)
+    df["class"] = df["score_text"]
+    df.drop(
+        ["c_jail_in", "c_jail_out", "decile_score", "score_text"],
         axis=1,
+        inplace=True,
     )
 
-    df_X = df[X_columns]
+    target = df[target_label]
+    features = df.drop(columns=[target_label])
+    categorical_features = features.select_dtypes(
+        include=["object", "category"]
+    ).columns
+    continuous_features = features.select_dtypes(
+        exclude=["object", "category"]
+    ).columns
 
-    def get_df_dce(df_in):
-        df_dce = df_in.copy(deep=True)
-        return df_dce
+    dataset_name = "compas"
+    dataset_config = config["dataset"][dataset_name]
+    target_label = dataset_config.get("target_name")
+    class_name = target_label
+    non_act_features = dataset_config.get("non_act_cols")
 
-    df_dce = get_df_dce(df)
+    target = df[target_label]
+    features = df.drop(columns=[target_label])
+    X_columns = features.columns.tolist()
+    categorical_features = features.select_dtypes(
+        include=["object", "category"]
+    ).columns
+    continuous_features = features.select_dtypes(
+        exclude=["object", "category"]
+    ).columns
 
-    # need a unenencoded/scaled dataset for dcf and dce moved below loan status to int
-    # df_dce still has arr_state and years_of credit, if used again will need removing
+    continuous = continuous_features.tolist()
+    non_continuous = categorical_features.tolist()
 
-    invariants = non_act_cols
-    print(type(non_act_cols))
+    preprocessor, target_encoder = create_data_transformer(
+        continuous_features, categorical_features, "minmax", "onehot"
+    )
+
+    preprocessor.fit(features)
+
+    cont_imputer = preprocessor.named_transformers_["continuous"].named_steps[
+        "imputer"
+    ]
+    cat_imputer = preprocessor.named_transformers_["categorical"].named_steps[
+        "imputer"
+    ]
+
+    # HACK: this is dirty but
+    # does the job
+
+    new_feat_cont = cont_imputer.fit_transform(features[continuous_features])
+    new_feat_cont = pd.DataFrame(
+        new_feat_cont, columns=continuous_features, index=features.index
+    )
+    if dataset_name != "fico":
+        new_feat_cat = cat_imputer.fit_transform(
+            features[categorical_features]
+        )
+
+        new_feat_cat = pd.DataFrame(
+            new_feat_cat,
+            columns=categorical_features,
+            index=features.index,
+        )
+        features = pd.concat([new_feat_cont, new_feat_cat], axis=1)
+    else:
+        features = new_feat_cont
+
+    df_dce = pd.concat([features, target], axis=1)
+    df_X = df_dce[X_columns]
+
+    print(f"NaN values: {features.isnull().values.any()}")
+
+    transformed_target = target_encoder.fit_transform(target)
+    possible_outcomes = target_encoder.classes_.tolist()
+    labels = tuple(possible_outcomes)
+    target = pd.DataFrame(
+        transformed_target, columns=[target.name], index=target.index
+    )
+
+    type_features, features_type = recognize_features_type(df, class_name)
+    df = pd.concat([features, target], axis=1)
+
+    invariants = non_act_features
     binners = []
     label_encoders = []
     use_dummies = True
 
-    # TODO: use LabelEncoder
+    continuous_transformer = preprocessor.named_transformers_["continuous"]
+    transformed_continuous = continuous_transformer.transform(
+        features[continuous_features]
+    )
 
-    # gives labels in wrong order with fully paid as 0 and and and charged off as 1 hard code instead
-    df, possible_outcomes, labels = get_possible_outcomes(df, class_name)
-    # possible_outcomes = ['<=50K','50K']#must be in order [0,1]
-    # labels = ('<=50K','50K')#must be in order [0,1]
-    type_features, features_type = recognize_features_type(df, class_name)
+    transformed_df = pd.DataFrame(
+        transformed_continuous,
+        columns=continuous_features,
+        index=features.index,
+    )
+
+    scaler = continuous_transformer.named_steps["scaler"]
 
     idx_features = {i: col for i, col in enumerate(X_columns)}
-    dummy = {}
+    mads = {}
     scalers = {}
-    mads = (
-        {}
-    )  # for use with lime as a fiddle factor to allow lime coeffs to compare continuous to non_continuous , add dict of continuous variables {variable : mad}
-    target = df[class_name]
+    for column in continuous_features:
+        mad = stats.median_abs_deviation(
+            transformed_df[column], nan_policy="omit"
+        )
+        mads[column] = mad
+        scalers[column] = scaler
+    # TODO: somehow get dummy dict
 
-    # TODO: encode using column transformer
-    for column in df_X.columns:
+    transformed_array = preprocessor.transform(features)
+    if isspmatrix_csr(transformed_array):
+        transformed_array = transformed_array.toarray()
 
-        if column not in non_continuous:  # for continuous columns
-            # scaling when using dice which requires normalization for compatability
-            print(column)
-            scaler = MinMaxScaler()
-            values = df_X[column].values.reshape(-1, 1)
-            mads[column] = stats.median_abs_deviation(values, axis=None)
-            scaler.fit(values)
-            df_X[column] = scaler.transform(values)
-            scalers[column] = scaler
+    feature_names = preprocessor.get_feature_names_out()
+    df_X = pd.DataFrame(
+        transformed_array, columns=feature_names, index=features.index
+    )
+    df_X.columns = df_X.columns.str.replace(
+        r"^(continuous__|categorical__)", "", regex=True
+    )
 
-        else:  # for categorical columns
-            # use get dummies
-            dummy_columns = pd.get_dummies(
-                df_X[column], prefix=column, prefix_sep="_", drop_first=False
-            ).astype(float)
-            for col in dummy_columns.columns:
-                df_X[col] = dummy_columns[col]
-            update_dict = {column: dummy_columns.columns.values}
-            dummy.update(update_dict)
-            # encoder = LabelEncoder()
-            # encoder = OneHotEncoder()
-            # encoder.fit(df_X[column].values.reshape(-1,1))
-            df_X.drop(column, axis=1, inplace=True)
+    # ohe = preprocessor.named_transformers_["categorical"].named_steps[
+    # "encoder"
+    # ]
 
-    print("VIP info")
-    print(dummy)
+    feature_names = np.array(
+        [
+            re.sub(r"^(continuous__|categorical__)", "", name)
+            for name in feature_names
+        ]
+    )
+    dummy = {}
+    for column in non_continuous:
+        mask = np.array([fn.startswith(column) for fn in feature_names])
+        dummy[column] = feature_names[mask]
 
     dataset = {
-        "name": file_name.replace(".csv", ""),
+        "name": dataset_name,
         "df": df,  # removed to shrink size of dataset obj
         "df_dce": df_dce,  # removed to shrink size of dataset obj
         "columns": df.columns,
@@ -1463,6 +1550,293 @@ def process_adult():
     }
 
     return dataset
+
+
+# def process_adult():
+#     path = "counterfactual_explainers/data/raw_data/adult.csv"
+#     df = pd.read_csv(path, skipinitialspace=True, na_values="?")
+#
+#     X_columns = [
+#         "workclass",
+#         "age",
+#         "marital-status",
+#         "occupation",
+#         "race",
+#         "sex",
+#         "hours-per-week",
+#     ]
+#     y_column = "class"
+#     class_name = y_column
+#
+#     # TODO: do not drop these columns use Imputer instead
+#
+#     non_continuous = df.select_dtypes(
+#         include=["object", "category"]
+#     ).columns.tolist()
+#
+#     non_continuous.remove(class_name)
+#
+#     print(non_continuous)
+#
+#     continuous = df.select_dtypes(
+#         exclude=["object", "category"]
+#     ).columns.tolist()
+#
+#     print(continuous)
+#
+#     df = df.dropna(axis=0)
+#     df = df.reset_index()
+#
+#     df = df.drop(
+#         labels=[
+#             "index",
+#             "fnlwgt",
+#             "education",
+#             "relationship",
+#             "capital-gain",
+#             "capital-loss",
+#             "native-country",
+#         ],
+#         axis=1,
+#     )
+#
+#     df_X = df[X_columns]
+#
+#     def get_df_dce(df_in):
+#         df_dce = df_in.copy(deep=True)
+#         return df_dce
+#
+#     df_dce = get_df_dce(df)
+#
+#     # need a unenencoded/scaled dataset for dcf and dce moved below loan status to int
+#     # df_dce still has arr_state and years_of credit, if used again will need removing
+#
+#     invariants = non_act_cols
+#     print(type(non_act_cols))
+#     binners = []
+#     label_encoders = []
+#     use_dummies = True
+#
+#     # TODO: use LabelEncoder
+#
+#     # gives labels in wrong order with fully paid as 0 and and and charged off as 1 hard code instead
+#     df, possible_outcomes, labels = get_possible_outcomes(df, class_name)
+#     # possible_outcomes = ['<=50K','50K']#must be in order [0,1]
+#     # labels = ('<=50K','50K')#must be in order [0,1]
+#     type_features, features_type = recognize_features_type(df, class_name)
+#
+#     idx_features = {i: col for i, col in enumerate(X_columns)}
+#     dummy = {}
+#     scalers = {}
+#     mads = (
+#         {}
+#     )  # for use with lime as a fiddle factor to allow lime coeffs to compare continuous to non_continuous , add dict of continuous variables {variable : mad}
+#     target = df[class_name]
+#
+#     # TODO: encode using column transformer
+#     for column in df_X.columns:
+#
+#         if column not in non_continuous:  # for continuous columns
+#             # scaling when using dice which requires normalization for compatability
+#             print(column)
+#             scaler = MinMaxScaler()
+#             values = df_X[column].values.reshape(-1, 1)
+#             mads[column] = stats.median_abs_deviation(values, axis=None)
+#             scaler.fit(values)
+#             df_X[column] = scaler.transform(values)
+#             scalers[column] = scaler
+#
+#         else:  # for categorical columns
+#             # use get dummies
+#             dummy_columns = pd.get_dummies(
+#                 df_X[column], prefix=column, prefix_sep="_", drop_first=False
+#             ).astype(float)
+#             for col in dummy_columns.columns:
+#                 df_X[col] = dummy_columns[col]
+#             update_dict = {column: dummy_columns.columns.values}
+#             dummy.update(update_dict)
+#             # encoder = LabelEncoder()
+#             # encoder = OneHotEncoder()
+#             # encoder.fit(df_X[column].values.reshape(-1,1))
+#             df_X.drop(column, axis=1, inplace=True)
+#
+#     print("VIP info")
+#     print(dummy)
+#
+#     dataset = {
+#         "name": file_name.replace(".csv", ""),
+#         "df": df,  # removed to shrink size of dataset obj
+#         "df_dce": df_dce,  # removed to shrink size of dataset obj
+#         "columns": df.columns,
+#         "X_columns": X_columns,
+#         "X_columns_with_dummies": df_X.columns,
+#         "class_name": class_name,
+#         "possible_outcomes": possible_outcomes,
+#         "type_features": type_features,
+#         "features_type": features_type,
+#         #'discrete': discrete,
+#         "continuous": continuous,
+#         #'categorical': categorical, #added by JF
+#         "non_continuous": non_continuous,
+#         "discrete": non_continuous,
+#         "dummy": dummy,  # added by JF
+#         "idx_features": idx_features,
+#         "label_encoder": label_encoders,
+#         "scaler": scalers,
+#         "binner": binners,
+#         "number_of_bins": 10,
+#         "mads": mads,
+#         "labels": labels,
+#         "invariants": invariants,
+#         "data_human_dict": {
+#             "income": "income",
+#             "age": "age",
+#             "work_class_ ?": {"name": "work_class", "value": "?"},
+#             "work_class_ Federal-gov": {
+#                 "name": "work_class",
+#                 "value": "Federal-gov",
+#             },
+#             "work_class_ Local-gov": {
+#                 "name": "work_class",
+#                 "value": "Local-gov",
+#             },
+#             "work_class_ Never-worked": {
+#                 "name": "work_class",
+#                 "value": "Never-worked",
+#             },
+#             "work_class_ Private": {"name": "work_class", "value": "Private"},
+#             "work_class_ Self-emp-inc": {
+#                 "name": "work_class",
+#                 "value": "Self-emp-inc",
+#             },
+#             "work_class_ Self-emp-not-inc": {
+#                 "name": "work_class",
+#                 "value": "Self-emp-not-inc",
+#             },
+#             "work_class_ State-gov": {
+#                 "name": "work_class",
+#                 "value": "State-gov",
+#             },
+#             "work_class_ Without-pay": {
+#                 "name": "work_class",
+#                 "value": "Without-pay",
+#             },
+#             "education_years": "education_years",
+#             "marital_status_ Divorced": {
+#                 "name": "marital_status",
+#                 "value": "Divorced",
+#             },
+#             "marital_status_ Married-AF-spouse": {
+#                 "name": "marital_status",
+#                 "value": "Married-AF-spouse",
+#             },
+#             "marital_status_ Married-civ-spouse": {
+#                 "name": "marital_status",
+#                 "value": "Married-civ-spouse",
+#             },
+#             "marital_status_ Married-spouse-absent": {
+#                 "name": "marital_status",
+#                 "value": "Married-spouse-absent",
+#             },
+#             "marital_status_ Never-married": {
+#                 "name": "marital_status",
+#                 "value": "Never-married",
+#             },
+#             "marital_status_ Separated": {
+#                 "name": "marital_status",
+#                 "value": "Separated",
+#             },
+#             "marital_status_ Widowed": {
+#                 "name": "marital_status",
+#                 "value": "Widowed",
+#             },
+#             "occupation_ ?": {"name": "occupation", "value": "?"},
+#             "occupation_ Adm-clerical": {
+#                 "name": "occupation",
+#                 "value": "Adm-clerical",
+#             },
+#             "occupation_ Armed-Forces": {
+#                 "name": "occupation",
+#                 "value": "Armed-Forces",
+#             },
+#             "occupation_ Craft-repair": {
+#                 "name": "occupation",
+#                 "value": "Craft-repair",
+#             },
+#             "occupation_ Exec-managerial": {
+#                 "name": "occupation",
+#                 "value": "Exec-managerial",
+#             },
+#             "occupation_ Farming-fishing": {
+#                 "name": "occupation",
+#                 "value": "Farming-fishing",
+#             },
+#             "occupation_ Handlers-cleaners": {
+#                 "name": "occupation",
+#                 "value": "Handlers-cleaners",
+#             },
+#             "occupation_ Machine-op-inspct": {
+#                 "name": "occupation",
+#                 "value": "Machine-op-inspct",
+#             },
+#             "occupation_ Other-service": {
+#                 "name": "occupation",
+#                 "value": "Other-service",
+#             },
+#             "occupation_ Priv-house-serv": {
+#                 "name": "occupation",
+#                 "value": "Priv-house-serv",
+#             },
+#             "occupation_ Prof-specialty": {
+#                 "name": "occupation",
+#                 "value": "Prof-specialty",
+#             },
+#             "occupation_ Protective-serv": {
+#                 "name": "occupation",
+#                 "value": "Protective-serv",
+#             },
+#             "occupation_ Sales": {"name": "occupation", "value": "Sales"},
+#             "occupation_ Tech-support": {
+#                 "name": "occupation",
+#                 "value": "Tech-support",
+#             },
+#             "occupation_ Transport-moving": {
+#                 "name": "occupation",
+#                 "value": "Transport-moving",
+#             },
+#             "race_ Amer-Indian-Eskimo": {
+#                 "name": "race",
+#                 "value": "Amer-Indian-Eskimo",
+#             },
+#             "race_ Asian-Pac-Islander": {
+#                 "name": "race",
+#                 "value": "Asian-Pac-Islander",
+#             },
+#             "race_ Black": {"name": "race", "value": "Black"},
+#             "race_ Other": {"name": "race", "value": "Other"},
+#             "race_ White": {"name": "race", "value": "White"},
+#             "sex_ Female": {"name": "sex", "value": "Female"},
+#             "sex_ Male": {"name": "sex", "value": "Male"},
+#             "hours_per_week": "hours_per_week",
+#         },  # get_lending_human_dictionary(),
+#         "human_data_dict": {
+#             "income": "income",
+#             "age": "age",
+#             "work_class": "work_class",
+#             "education_years": "education_years",
+#             "marital_status": "marital_status",
+#             "occupation": "occupation",
+#             "race": "race",
+#             "sex": "sex",
+#             "hours_per_week": "hours_per_week",
+#         },  # get_lending_data_dictionary(),
+#         "X": df_X.values,  # np array #removed to shrink size of dataset obj
+#         "y": target,  # np array #removed to shrink size of dataset obj
+#         "use_dummies": use_dummies,
+#     }
+#
+#     return dataset
+#
 
 
 def recognize_features_type(df, class_name):

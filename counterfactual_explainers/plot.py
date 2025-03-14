@@ -25,7 +25,7 @@ def main():
     config = clean_config(config)
 
     for dataset in config["dataset"]:
-        if dataset == "adult":
+        if dataset == "german_credit":
             metrics_dnn_df = pd.read_csv(
                 f"counterfactual_explainers/results/cf_dice_DNN_{dataset}_metrics_2.csv"
             )
@@ -34,11 +34,11 @@ def main():
             )
 
             metrics_aide = pd.read_csv(
-                f"counterfactual_explainers/results/cf_aide_DNN_{dataset}_metrics_3.csv"
+                f"counterfactual_explainers/results/cf_aide_DNN_{dataset}_metrics_2.csv"
             )
 
             metrics = list(
-                metrics_dnn_df.drop("num_required_cfs", axis=1).columns
+                metrics_rf_df.drop("num_required_cfs", axis=1).columns
             )
             num_metrics = len(metrics)
             num_cols = 3
@@ -103,8 +103,9 @@ def main():
                     )
 
             fig.show()
-            fig.write_html("counterfactual_explainers/plots/metrics_plot.html")
-
+            fig.write_html(
+                f"counterfactual_explainers/plots/metrics_plot_{dataset}.html"
+            )
             # Add parrallel coordinate plots for k=20 for all methods
             if dataset == "compas":
                 data = read_compas_dataset()
@@ -135,21 +136,24 @@ def main():
             new_feat_cont = cont_imputer.fit_transform(
                 features[continuous_features]
             )
-            new_feat_cat = cat_imputer.fit_transform(
-                features[categorical_features]
-            )
-
             new_feat_cont = pd.DataFrame(
                 new_feat_cont,
                 columns=continuous_features,
                 index=features.index,
             )
-            new_feat_cat = pd.DataFrame(
-                new_feat_cat,
-                columns=categorical_features,
-                index=features.index,
-            )
-            features = pd.concat([new_feat_cont, new_feat_cat], axis=1)
+            if dataset != "fico":
+                new_feat_cat = cat_imputer.fit_transform(
+                    features[categorical_features]
+                )
+
+                new_feat_cat = pd.DataFrame(
+                    new_feat_cat,
+                    columns=categorical_features,
+                    index=features.index,
+                )
+                features = pd.concat([new_feat_cont, new_feat_cat], axis=1)
+            else:
+                features = new_feat_cont
 
             df = pd.concat([features, target], axis=1)
 
@@ -166,7 +170,7 @@ def main():
             )
 
             cfs_aide = pd.read_csv(
-                f"counterfactual_explainers/results/cf_aide_DNN_{dataset}_20.csv"
+                f"counterfactual_explainers/results/cf_aide_DNN_{dataset}.csv"
             )
 
             query_instance = pd.read_csv(
@@ -271,7 +275,7 @@ def main():
 
             fig.show()
             fig.write_html(
-                "counterfactual_explainers/plots/parallel_coordinate_plot.html"
+                f"counterfactual_explainers/plots/parallel_coordinate_plot_{dataset}.html"
             )
 
 
