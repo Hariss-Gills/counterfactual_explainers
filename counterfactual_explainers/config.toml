@@ -31,26 +31,34 @@ non_act_cols = [
 drop_columns = ["fnlwgt", "education-num"]
 na_values = "?"
 test_size = 0.3
+scaler = "minmax"
+encode = "onehot"
 
 [dataset.german_credit]
 target_name = "default"
 non_act_cols = [
-    # "age",
-    # "people_under_maintenance",
-    # "credit_history",
-    # "purpose",
-    # "sex",
-    # "housing",
-    # "foreign_worker",
+    "age",
+    "people_under_maintenance",
+    "credit_history",
+    "purpose",
+    "sex",
+    "housing",
+    "foreign_worker",
 ]
 test_size = 0.3
+scaler = "minmax"
+encode = "onehot"
 
 [dataset.fico]
 target_name = "RiskPerformance"
 non_act_cols = ["ExternalRiskEstimate"]
 test_size = 0.3
+scaler = "minmax"
+encode = ""
 
 [dataset.compas]
 target_name = "class"
 non_act_cols = ["age", "sex", "race"]
 test_size = 0.3
+scaler = "minmax"
+encode = "onehot"
