@@ -273,7 +273,6 @@ def create_data_transformer(
     continuous_transformer = Pipeline(steps=steps_cont)
 
     steps_cat = [("imputer", SimpleImputer(strategy="most_frequent"))]
-
     if encode is not None:
         if encode == "onehot":
             steps_cat.append(

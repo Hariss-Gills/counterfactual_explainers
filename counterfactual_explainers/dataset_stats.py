@@ -90,7 +90,7 @@ def get_pipeline_stats(data: DatasetDict) -> dict[str, int | None]:
     }
 
 
-def main():
+def main() -> None:
     """Main execution function that processes all datasets in configuration.
 
     Reads and cleans configuration, processes each dataset listed in the
