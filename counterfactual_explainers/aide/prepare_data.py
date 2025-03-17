@@ -23,7 +23,6 @@ from counterfactual_explainers.aide import predict
 from counterfactual_explainers.data.preprocess_data import (
     clean_config,
     create_data_transformer,
-    read_compas_dataset,
     read_dataset,
 )
 

@@ -69,7 +69,7 @@ def keras_pred(model, line):
     # keras 3 new line
     # pred = float(predict.predict_2D(model, line)) old line
     pred = predict.predict_batch(model, line)
-    # pred = (np.argmax(pred, axis=1) == 0).astype(int)
+    pred = (np.argmax(pred, axis=1) == 0).astype(int)
     # pred = float(predict.predict_batch(model, line))
     pred = float(pred)
     pred_array = [1 - pred, pred]
