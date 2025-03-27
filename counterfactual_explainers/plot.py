@@ -9,7 +9,7 @@ from plotly.subplots import make_subplots
 from counterfactual_explainers.data.preprocess_data import (
     clean_config,
     create_data_transformer,
-    read_compas_dataset,
+    read_config,
     read_dataset,
 )
 
@@ -17,13 +17,7 @@ from counterfactual_explainers.data.preprocess_data import (
 
 
 def main():
-    package = files("counterfactual_explainers")
-    toml_path = package / "config.toml"
-    with toml_path.open("rb") as file:
-        config = load(file)
-
-    config = clean_config(config)
-
+    config = clean_config(read_config())
     for dataset in config["dataset"]:
         if dataset == "german_credit":
             metrics_dnn_df = pd.read_csv(
@@ -107,10 +101,7 @@ def main():
                 f"counterfactual_explainers/plots/metrics_plot_{dataset}.html"
             )
             # Add parrallel coordinate plots for k=20 for all methods
-            if dataset == "compas":
-                data = read_compas_dataset()
-            else:
-                data = read_dataset(dataset)
+            data = read_dataset(config, dataset)
 
             params_dataset = config["dataset"][dataset]
 
