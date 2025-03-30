@@ -146,6 +146,9 @@ def calc_actionability(
     """
     cf_values = cf_row[non_act_features].to_numpy()
     query_values = query_instance.iloc[0][non_act_features].to_numpy()
+    print(cf_values)
+    print(query_values)
+    print(non_act_features)
     non_action_changes = (cf_values != query_values).any()
     return 0 if non_action_changes else 1
 
@@ -441,7 +444,7 @@ def calculate_metrics_for_dataset(
                             "Actionability": act,
                             "Diversity Distance": div_dist,
                             "Diversity Count": div_count,
-                            "Runtime": runtime,
+                            "Runtime (in seconds)": runtime,
                         }
                     )
 

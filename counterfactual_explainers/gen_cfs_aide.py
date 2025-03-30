@@ -240,8 +240,7 @@ def main() -> None:
     """Main execution function for aide counterfactual generation."""
     config = clean_config(read_config())
     for dataset_name in config["dataset"]:
-        if dataset_name == "compas":
-            generate_cfs_for_dataset(dataset_name, config)
+        generate_cfs_for_dataset(dataset_name, config)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-Number of Required CFS,Size,Dissimilarity Distance,Dissimilarity Count,Actionability,Diversity Distance,Diversity Count,Runtime
+Number of Required CFS,Size,Dissimilarity Distance,Dissimilarity Count,Actionability,Diversity Distance,Diversity Count,Runtime (in seconds)
 1,1.0,2.141510527595063,0.3,1.0,0.0,0.0,1366.3411391519985
 2,1.0,35.91996676758205,0.3,1.0,34.973065262623045,0.11764705882352941,1366.3411391519985
 3,1.0,24.585238061250777,0.26666666666666666,1.0,31.12777366914477,0.13071895424836602,1366.3411391519985

@@ -1,0 +1,4 @@
+group1,group2,meandiff,p-adj,lower,upper,reject
+AIDE,DICE_genetic,-0.1434,0.0,-0.2017,-0.0851,True
+AIDE,DICE_gradient,-0.1587,0.0,-0.2173,-0.1001,True
+DICE_genetic,DICE_gradient,-0.0153,0.8322,-0.0776,0.0471,False

@@ -226,9 +226,9 @@ def generate_and_save_counterfactuals(
                 )
                 output_path = (
                     RESULTS_PATH
-                    / f"cf_dice_{model_name}_{dataset_name}_{num_required_cfs}.csv"
+                    / f"cf_dice_{model_name}_{dataset_name}_{num_required_cfs}_test.csv"
                 )
-                # cfs.final_cfs_df.to_csv(output_path, index=False)
+                cfs.final_cfs_df.to_csv(output_path, index=False)
             else:
                 print(
                     "DICE could not find counterfactuals"
@@ -250,7 +250,7 @@ def generate_and_save_counterfactuals(
     if runtimes:
         runtime_df = pd.DataFrame(runtimes).set_index("Number of Required CFS")
         runtime_csv_path = (
-            RESULTS_PATH / f"runtime_dice_{model_name}_{dataset_name}.csv"
+            RESULTS_PATH / f"runtime_dice_{model_name}_{dataset_name}_test.csv"
         )
         runtime_df.to_csv(runtime_csv_path)
 
@@ -265,91 +265,90 @@ def generate_cfs_for_dataset(
         dataset_name: Name of dataset to process
         config: Configuration dictionary with parameters
     """
-    if dataset_name not in ["adult", "german_credit"]:
-        data = read_dataset(config, dataset_name)
-        params_dataset = config["dataset"][dataset_name]
+    data = read_dataset(config, dataset_name)
+    params_dataset = config["dataset"][dataset_name]
 
-        continuous_features = data["continuous_features"]
-        categorical_features = data["categorical_features"]
-        non_act_features = data["non_act_features"]
+    continuous_features = data["continuous_features"]
+    categorical_features = data["categorical_features"]
+    non_act_features = data["non_act_features"]
 
-        features = data["features"]
-        target = data["target"]
-        encoder = data["encode"]
+    features = data["features"]
+    target = data["target"]
+    encoder = data["encode"]
 
-        if dataset_name == "compas":
-            desired_class = 2
-        else:
-            desired_class = "opposite"
+    if dataset_name == "compas":
+        desired_class = 2
+    else:
+        desired_class = "opposite"
 
-        for model_name in config["model"]:
-            params_model = config["model"][model_name]
-            seed = params_model["classifier__random_state"][0]
-            all_feat = features.columns.values.tolist()
-            act_feat = list(set(all_feat) - set(non_act_features))
+    for model_name in config["model"]:
+        params_model = config["model"][model_name]
+        seed = params_model["classifier__random_state"][0]
+        all_feat = features.columns.values.tolist()
+        act_feat = list(set(all_feat) - set(non_act_features))
 
-            (
-                model,
-                backend,
-                method,
-                func,
-                transformed_features,
-                transformed_target,
-            ) = prepare_model_and_data(
-                model_name,
-                dataset_name,
-                encoder,
-                features,
-                continuous_features,
-                categorical_features,
-                target,
-            )
+        (
+            model,
+            backend,
+            method,
+            func,
+            transformed_features,
+            transformed_target,
+        ) = prepare_model_and_data(
+            model_name,
+            dataset_name,
+            encoder,
+            features,
+            continuous_features,
+            categorical_features,
+            target,
+        )
 
-            # NOTE: for sklearn models the data df doesn't have to be encoded
-            X_train, X_test, y_train, y_test = train_test_split(
-                transformed_features,
-                transformed_target,
-                test_size=params_dataset["test_size"],
-                random_state=seed,
-                stratify=target,
-            )
+        # NOTE: for sklearn models the data df doesn't have to be encoded
+        X_train, X_test, y_train, y_test = train_test_split(
+            transformed_features,
+            transformed_target,
+            test_size=params_dataset["test_size"],
+            random_state=seed,
+            stratify=target,
+        )
 
-            combined_train_df = pd.concat([X_train, y_train], axis=1)
-            dice_data_object = Data(
-                dataframe=combined_train_df,
-                continuous_features=continuous_features.tolist(),
-                outcome_name=params_dataset["target_name"],
-            )
-            dice_model_object = Model(model=model, backend=backend, func=func)
-            dice_exp = Dice(dice_data_object, dice_model_object, method=method)
+        combined_train_df = pd.concat([X_train, y_train], axis=1)
+        dice_data_object = Data(
+            dataframe=combined_train_df,
+            continuous_features=continuous_features.tolist(),
+            outcome_name=params_dataset["target_name"],
+        )
+        dice_model_object = Model(model=model, backend=backend, func=func)
+        dice_exp = Dice(dice_data_object, dice_model_object, method=method)
 
-            # WARNING: this instance for fico RF mostly fails but
-            # should probably be kept. Also if num_required_cfs = 1
-            # it throws a different error, hence catch that here too.
-            # compas DNN always fails too -> no CFs found.
-            query_instance = X_test.sample(random_state=seed)
-            sampled_index = query_instance.index[0]
-            y_query_instance = y_test.loc[sampled_index]
-            query_instance_combined = query_instance.copy()
-            query_instance_combined["target"] = y_query_instance
+        # WARNING: this instance for fico RF mostly fails but
+        # should probably be kept. Also if num_required_cfs = 1
+        # it throws a different error, hence catch that here too.
+        # compas DNN always fails too -> no CFs found.
+        query_instance = X_test.sample(random_state=seed)
+        sampled_index = query_instance.index[0]
+        y_query_instance = y_test.loc[sampled_index]
+        query_instance_combined = query_instance.copy()
+        query_instance_combined["target"] = y_query_instance
 
-            query_instance_combined.to_csv(
-                RESULTS_PATH
-                / f"cf_dice_{model_name}_{dataset_name}_query_instance_combined.csv",
-                index=False,
-            )
+        query_instance_combined.to_csv(
+            RESULTS_PATH
+            / f"cf_dice_{model_name}_{dataset_name}_query_instance_combined.csv",
+            index=False,
+        )
 
-            print("This is the query_instance")
-            print(query_instance_combined)
+        print("This is the query_instance")
+        print(query_instance_combined)
 
-            generate_and_save_counterfactuals(
-                dice_exp=dice_exp,
-                query_instance=query_instance,
-                act_features=act_feat,
-                desired_class=desired_class,
-                model_name=model_name,
-                dataset_name=dataset_name,
-            )
+        generate_and_save_counterfactuals(
+            dice_exp=dice_exp,
+            query_instance=query_instance,
+            act_features=act_feat,
+            desired_class=desired_class,
+            model_name=model_name,
+            dataset_name=dataset_name,
+        )
 
 
 def main() -> None:
