@@ -1,0 +1,2 @@
+account_check_status,duration_in_month,credit_history,purpose,credit_amount,savings,present_emp_since,installment_as_income_perc,personal_status_sex,other_debtors,present_res_since,property,age,other_installment_plans,housing,credits_this_bank,job,people_under_maintenance,telephone,foreign_worker,target
+0 <= ... < 200 DM,7.0,existing credits paid back duly till now,domestic appliances,2576.0,... < 100 DM,1 <= ... < 4 years,2.0,male : single,guarantor,2.0,real estate,35.0,none,own,1.0,skilled employee / official,1.0,none,yes,

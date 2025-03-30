@@ -1,0 +1,2 @@
+account_check_status,duration_in_month,credit_history,purpose,credit_amount,savings,present_emp_since,installment_as_income_perc,personal_status_sex,other_debtors,present_res_since,property,age,other_installment_plans,housing,credits_this_bank,job,people_under_maintenance,telephone,foreign_worker,default
+< 0 DM,12,existing credits paid back duly till now,domestic appliances,2577,... < 100 DM,1 <= ... < 4 years,2,male : divorced/separated,none,1,"if not A121/A122 : car or other, not in attribute 6",35,none,own,1,skilled employee / official,1,none,yes,1

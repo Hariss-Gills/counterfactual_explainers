@@ -1,0 +1,2 @@
+age,priors_count,days_b_screening_arrest,is_recid,is_violent_recid,two_year_recid,length_of_stay,sex,race,c_charge_degree,target
+45.0,0.0,1.0,0.0,0.0,0.0,0.0,Female,Other,M,

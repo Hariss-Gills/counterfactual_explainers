@@ -1,8 +1,0 @@
-age,workclass,education,marital-status,occupation,relationship,race,sex,capital-gain,capital-loss,hours-per-week,native-country
-56.0,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,99999.0,4356.0,51.09006218692427,United-States
-56.0,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,70356.78639482356,3656.860430976171,62.91716388054541,United-States
-56.0,Self-emp-not-inc,Some-college,Married-spouse-absent,Protective-serv,Not-in-family,Black,Male,99999.0,4356.0,44.97218093443682,United-States
-56.0,Self-emp-not-inc,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,83919.40202072248,3888.7761924044007,68.45536888401568,United-States
-56.0,Federal-gov,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,70151.37830619096,3588.8806339279486,44.817605502567424,United-States
-56.0,Without-pay,Some-college,Married-spouse-absent,Prof-specialty,Not-in-family,Black,Male,99999.0,3702.756621348834,63.0732231317417,United-States
-56.0,Self-emp-not-inc,Some-college,Married-spouse-absent,Adm-clerical,Not-in-family,Black,Male,99999.0,4006.89739715736,64.89400754017976,United-States
