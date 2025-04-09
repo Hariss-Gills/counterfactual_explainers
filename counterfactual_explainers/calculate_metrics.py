@@ -508,8 +508,6 @@ def calculate_metrics_for_dataset(
                         categorical_features.tolist(),
                     )
 
-                    print(f"Range Alignment {range_alignment}")
-
                     results.append(
                         {
                             "Number of Required CFS": num_required_cfs,
@@ -536,7 +534,7 @@ def calculate_metrics_for_dataset(
 
                 results_df.to_csv(
                     RESULTS_PATH / f"cf_{explainer}_{model_name}_{dataset}_"
-                    f"metrics_alignment.csv",
+                    f"metrics.csv",
                 )
 
 

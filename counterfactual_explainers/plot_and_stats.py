@@ -63,9 +63,9 @@ def plot_metrics(dataset: str) -> tuple[pd.DataFrame, list[str]]:
             - A concatenated DataFrame of metric scores from available methods.
             - A list of metric names plotted.
     """
-    dnn_csv = RESULTS_PATH / f"cf_dice_dnn_{dataset}_metrics_alignment.csv"
-    rf_csv = RESULTS_PATH / f"cf_dice_rf_{dataset}_metrics_alignment.csv"
-    aide_csv = RESULTS_PATH / f"cf_aide_dnn_{dataset}_metrics_alignment.csv"
+    dnn_csv = RESULTS_PATH / f"cf_dice_dnn_{dataset}_metrics.csv"
+    rf_csv = RESULTS_PATH / f"cf_dice_rf_{dataset}_metrics.csv"
+    aide_csv = RESULTS_PATH / f"cf_aide_dnn_{dataset}_metrics.csv"
 
     try:
         metrics_dnn_df = pd.read_csv(dnn_csv)
