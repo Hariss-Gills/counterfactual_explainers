@@ -23,6 +23,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from scipy.sparse import isspmatrix_csr
+from scipy.spatial.distance import jaccard
 from sklearn.model_selection import train_test_split
 
 from counterfactual_explainers.data.preprocess_data import (
@@ -146,9 +147,6 @@ def calc_actionability(
     """
     cf_values = cf_row[non_act_features].to_numpy()
     query_values = query_instance.iloc[0][non_act_features].to_numpy()
-    print(cf_values)
-    print(query_values)
-    print(non_act_features)
     non_action_changes = (cf_values != query_values).any()
     return 0 if non_action_changes else 1
 
@@ -201,6 +199,71 @@ def calc_diversity(
     )
 
     return diversity_distance, diversity_count
+
+
+# NOTE:after testing sklearn's and scipy's jaccard index. It seems like
+# scipy's is  more detailed
+def calc_range_alignment(
+    cfs_df: pd.DataFrame,
+    target_class_instances: pd.DataFrame,
+    continuous_features: list[str],
+    categorical_features: list[str],
+) -> float:
+    """
+    Calculates the alignment between the value ranges of counterfactuals
+    and the value ranges of actual instances belonging to the target class.
+
+    For continuous features, it uses a discretization approach over the union range,
+    then computes the Jaccard index using scipy.
+    For categorical features, it creates binary indicator arrays for the sets of unique values
+    and computes the Jaccard index using scipy.
+
+    The scores are printed directly for each feature.
+
+    Args:
+        cfs_df: DataFrame of counterfactual instances (original, unencoded values).
+        target_class_instances: DataFrame containing only instances from the
+                                original dataset belonging to the target class
+                                (original, unencoded values).
+        continuous_features: List of continuous feature names.
+        categorical_features: List of categorical feature names.
+    """
+
+    alignment_scores = []
+    for feature in continuous_features:
+        cf_min = cfs_df[feature].min()
+        cf_max = cfs_df[feature].max()
+        target_min = target_class_instances[feature].min()
+        target_max = target_class_instances[feature].max()
+
+        union_min = min(cf_min, target_min)
+        union_max = max(cf_max, target_max)
+
+        samples = np.linspace(union_min, union_max, 100)
+        mask_cf = (samples >= cf_min) & (samples <= cf_max)
+        mask_target = (samples >= target_min) & (samples <= target_max)
+        distance = jaccard(mask_cf, mask_target)
+        cont_score = 1 - distance
+        alignment_scores.append(cont_score)
+
+    for feature in categorical_features:
+        cf_values = set(cfs_df[feature].unique())
+        target_values = set(target_class_instances[feature].unique())
+        union_values = sorted(
+            cf_values.union(target_values), key=lambda x: str(x)
+        )
+
+        cf_indicator = np.array(
+            [value in cf_values for value in union_values], dtype=bool
+        )
+        target_indicator = np.array(
+            [value in target_values for value in union_values], dtype=bool
+        )
+        distance = jaccard(cf_indicator, target_indicator)
+        cat_score = 1 - distance
+        alignment_scores.append(cat_score)
+
+    return np.mean(alignment_scores)
 
 
 def encode_cfs_to_dfs(
@@ -346,7 +409,7 @@ def calculate_metrics_for_dataset(
     """
     data = read_dataset(config, dataset)
     params_dataset = config["dataset"][dataset]
-
+    opposite_target = params_dataset["opposite_target"]
     continuous_features = data["continuous_features"]
     categorical_features = data["categorical_features"]
     non_act_features = data["non_act_features"]
@@ -435,6 +498,18 @@ def calculate_metrics_for_dataset(
                         mad,
                     )
 
+                    boolean_mask = target == opposite_target
+                    opposite_feat = features[boolean_mask]
+
+                    range_alignment = calc_range_alignment(
+                        cfs,
+                        opposite_feat,
+                        continuous_features.tolist(),
+                        categorical_features.tolist(),
+                    )
+
+                    print(f"Range Alignment {range_alignment}")
+
                     results.append(
                         {
                             "Number of Required CFS": num_required_cfs,
@@ -444,6 +519,7 @@ def calculate_metrics_for_dataset(
                             "Actionability": act,
                             "Diversity Distance": div_dist,
                             "Diversity Count": div_count,
+                            "Alignment": range_alignment,
                             "Runtime (in seconds)": runtime,
                         }
                     )
@@ -460,7 +536,7 @@ def calculate_metrics_for_dataset(
 
                 results_df.to_csv(
                     RESULTS_PATH / f"cf_{explainer}_{model_name}_{dataset}_"
-                    f"metrics.csv",
+                    f"metrics_alignment.csv",
                 )
 
 

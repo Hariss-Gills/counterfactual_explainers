@@ -19,6 +19,7 @@ classifier__random_state = [0]
 
 [dataset.adult]
 target_name = "class"
+opposite_target = ">50K"
 non_act_cols = [
     "age",
     "education",
@@ -36,6 +37,7 @@ encode = "onehot"
 
 [dataset.german_credit]
 target_name = "default"
+opposite_target = "1"
 non_act_cols = [
     "age",
     "people_under_maintenance",
@@ -51,6 +53,7 @@ encode = "onehot"
 
 [dataset.fico]
 target_name = "RiskPerformance"
+opposite_target = "Bad"
 non_act_cols = ["ExternalRiskEstimate"]
 test_size = 0.3
 scaler = "minmax"
@@ -58,6 +61,7 @@ encode = ""
 
 [dataset.compas]
 target_name = "class"
+opposite_target = "High"
 non_act_cols = ["age", "sex", "race"]
 test_size = 0.3
 scaler = "minmax"
