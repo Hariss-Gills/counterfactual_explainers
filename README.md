@@ -1,9 +1,43 @@
-# Data sources
+# Prerequisites
+Python 3.11.11
 
-- [adult](https://archive.ics.uci.edu/dataset/2/adult)
-- [compas](https://github.com/propublica/compas-analysis/blob/master/compas-scores-two-years.csv)
-- [fico](https://www.kaggle.com/datasets/averkiyoliabev/home-equity-line-of-creditheloc)
-- [german](https://www.kaggle.com/datasets/renaldydermawan25/credit-data)
+# Installation
+1. Clone the repo or unzip the `counterfactual_explainers-main.zip`.
+   ```sh
+   git clone https://github.com/Hariss-Gills/counterfactual_explainers.git
+   ```
+2. Create virtual environments for each counterfactual method.
+   ```sh
+   python -m venv ~/.python-venvs/counterfactual-explainers-dice
+   python -m venv ~/.python-venvs/counterfactual-explainers-aide
+   ```
+3. Install the packages required for each method.
+   ```sh
+   cd counterfactual_explainers
+   source ~/.python-venvs/counterfactual-explainers-dice/bin/activate
+   pip install .
+   pip install -r requirements-dice.txt
+   deactivate
+   source ~/.python-venvs/counterfactual-explainers-aide/bin/activate
+   pip install .
+   pip install -r requirements-aide.txt
+   deactivate
+   ```
+
+# Usage
+Run the top level modules .
+   ```sh
+   source ~/.python-venvs/counterfactual-explainers-dice/bin/activate
+   python counterfactual_explainers/dataset_stats.py
+   python counterfactual_explainers/train_models.py
+   python counterfactual_explainers/gen_cfs_dice.py
+   deactivate
+   source ~/.python-venvs/counterfactual-explainers-aide/bin/activate
+   python counterfactual_explainers/gen_cfs_aide.py
+   python counterfactual_explainers/calculate_metrics.py
+   python counterfactual_explainers/plot_and_stats.py
+   deactivate
+   ```
 
 # Notes
 - Need to downgrade from python 3.13.1 to 3.12.8 due to tensorflow
