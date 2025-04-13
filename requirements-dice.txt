@@ -13,7 +13,6 @@ dice-ml==0.11
 flatbuffers==24.12.23
 gast==0.4.0
 geopandas==1.0.1
-google-api-core==2.24.0
 google-auth==2.37.0
 google-auth-oauthlib==1.0.0
 google-cloud-bigquery==3.27.0
@@ -21,9 +20,6 @@ google-cloud-core==2.4.1
 google-crc32c==1.6.0
 google-pasta==0.2.0
 google-resumable-media==2.7.2
-googleapis-common-protos==1.66.0
-grpcio==1.69.0
-grpcio-status==1.69.0
 h5py==3.12.1
 idna==3.10
 jaraco.collections==5.1.0
