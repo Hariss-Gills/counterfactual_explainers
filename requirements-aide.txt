@@ -2,7 +2,6 @@ absl-py==2.1.0
 astunparse==1.6.3
 certifi==2025.1.31
 charset-normalizer==3.4.1
-counterfactual_explainers @ file:///home/hariss/my-stuff/studies/uni-of-abdn/year-5/CS4527/counterfactual_explainers
 flatbuffers==25.1.24
 gast==0.6.0
 google-pasta==0.2.0
