@@ -1,0 +1,59 @@
+\chapter{User Manual\label{chap:user-manual}}
+\lstset{style=mystyle}
+\section{Prerequisites}
+\begin{itemize}
+    \item Python 3.11.11
+\end{itemize}
+
+\section{Installation}
+\subsection{Step 1: Clone or Unzip the Repository}
+Clone the repository or unzip the \texttt{counterfactual\_explainers-main.zip} file.
+\begin{lstlisting}[style=shell]
+git clone https://github.com/Hariss-Gills/counterfactual_explainers.git
+\end{lstlisting}
+
+\subsection{Step 2: Create Virtual Environments}
+Create virtual environments for each counterfactual method.
+\begin{lstlisting}[style=shell]
+python -m venv ~/.python-venvs/counterfactual-explainers-dice
+python -m venv ~/.python-venvs/counterfactual-explainers-aide
+\end{lstlisting}
+
+\subsection{Step 3: Install Required Packages}
+Install the necessary packages for each method.
+\begin{lstlisting}[style=shell]
+cd counterfactual_explainers
+
+source ~/.python-venvs/counterfactual-explainers-dice/bin/activate
+pip install .
+pip install -r requirements-dice.txt
+deactivate
+
+source ~/.python-venvs/counterfactual-explainers-aide/bin/activate
+pip install .
+pip install -r requirements-aide.txt
+deactivate
+\end{lstlisting}
+
+\section{Usage}
+Run the top level modules using the respective virtual environments.
+\begin{lstlisting}[style=shell]
+source ~/.python-venvs/counterfactual-explainers-dice/bin/activate
+python counterfactual_explainers/dataset_stats.py
+python counterfactual_explainers/train_models.py
+python counterfactual_explainers/gen_cfs_dice.py
+deactivate
+
+source ~/.python-venvs/counterfactual-explainers-aide/bin/activate
+python counterfactual_explainers/gen_cfs_aide.py
+python counterfactual_explainers/calculate_metrics.py
+python counterfactual_explainers/plot_and_stats.py
+deactivate
+\end{lstlisting}
+
+\section{Notes}
+\begin{itemize}
+    \item It is necessary to downgrade from Python 3.13.1 to 3.12.8 due to TensorFlow compatibility.
+    \item TensorFlow must be downgraded to \texttt{tensorflow==2.13.0} since \texttt{dice\_ml==0.11} uses that version. Downgrading scikit-learn might also resolve the deserialization issue between using the pipeline versus a raw model.
+    \item Since \href{https://github.com/scikit-learn/scikit-learn/blob/d666202a9349893c1bd106cc9ee0ff0a807c7cf3/sklearn/base.py#L540}{\texttt{ClassifierMixin}} does not have a superclass, the \texttt{Tags()} class is used to instantiate some tags instead of downgrading scikit-learn.
+\end{itemize}

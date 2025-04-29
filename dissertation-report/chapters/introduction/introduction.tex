@@ -1,0 +1,42 @@
+\chapter{Introduction\label{chap:introduction}}
+% not more than 3 pages
+In recent years, Machine Learning (ML), a sub-field of Artificial Intelligence (AI), has witnessed substantial growth, leading to its increasing application in various industries to make predictions and automate processes. Although these ML models, including sophisticated deep learning architectures, have achieved remarkable success, many operate as "black boxes," making their decision-making processes opaque to human understanding. This lack of transparency poses challenges, especially when these models influence critical decisions with significant impacts on individuals' lives. Consequently, the field of eXplainable Artificial Intelligence (XAI) has emerged as a crucial research area, dedicated to developing techniques that can interpret and explain the inner workings and predictions of these black-box ML models. This report addresses the critical need for explainability in AI with counterfactual explanations, such kinds of methods offer a practical approach by identifying minimal changes to an input that would alter the model’s prediction.
+
+\section{Motivation}
+The increasing influence of ML in industrial applications, impacting major decisions with profound effects on people's lives, both positively and negatively, serves as a primary motivation for this research. When negative impacts occur, it becomes imperative for service providers and ML engineers to ensure fairness and accountability in the models \citep{arya2021ai}. Moreover, the end users need to understand the reason for a result and counterfactuals can provide useful information for all of the aforementioned parties. The European Union's General Data Protection Regulation (GDPR) has brought the concept of a "Right to Explanation" (R2Ex) for individuals affected by fully automated decisions into focus \citep{selbst2018meaningful}. This regulatory landscape underscores the urgent need for effective and automated explanation processes for AI-driven decisions. Understanding how users perceive and utilize explanations is crucial for the development of XAI systems that can enhance trust in AI.
+
+% Talk about ricardo and AIDE
+Among the approaches within XAI, counterfactual explanations stand out as a particularly intuitive, practical, and powerful method. Drawing inspiration from how humans naturally explain events. Not by detailing complex causal chains, but by contrasting what happened with a hypothetical alternative that didn't. They answer the user's implicit question, "Why this prediction instead of another?" For instance, rather than explaining every internal weight and bias of a loan application model, a counterfactual explanation might state, "You were denied because your income was too low and your credit score wasn't high enough; if your income had been \$X and your credit score Y, you would have been approved". Such explanations match with human contrastive reasoning. 
+
+One such method is called DiCE \citep{mothilal2020explaining}, which finds a set of counterfactuals by iteratively adjusting feature values of random instances through gradient descent, aiming to find multiple alternatives that would lead to a different classification. DiCE has been evaluated and performed as well as or better than all the state of the art counterfactual methods \citep{guidotti2024counterfactual}. The \href{https://pypi.org/project/dice-ml/}{python package} that provides DiCE also has a genetic method that has not been evaluated previously. It is based on GeCo employs a customized genetic algorithm to search a defined space of plausible and feasible counterfactual explanations by iteratively applying mutation and crossover operations, leveraging optimizations for runtime performance. In contrast, AIDE introduces an innovative, immune-inspired approach derived from Artificial Immune Systems. By leveraging mechanisms akin to biological antibodies, such as cloning, mutation, and neighborhood suppression, AIDE is designed to explore multiple local optima simultaneously. This multi-modal optimization not only promotes diversity among the counterfactuals but also increases the likelihood of producing varied explanations. As a result, AIDE represents a promising alternative, in optimization-based approaches \citep{forrest2021contrastive}.
+
+\section{Research Questions and Objectives}
+% Is aide via immue properties capable of producing different kind of counterfactuals
+The primary research questions driving this investigation are:
+\newline
+\begin{mdframed}[backgroundcolor=white,linecolor=black,linewidth=2pt]
+\begin{itemize} \label{research-questions}
+    \item \textbf{RQ1:} Is AIDE, an immune inspired algorithm, well suited for the task of counterfactual generation compared to DiCE? 
+    \item \textbf{RQ2:} Is AIDE well suited for the task of counterfactual generation compared to the genetic variant of DiCE based on GeCo?
+\end{itemize}
+\end{mdframed}
+
+
+\section{Project Overview}
+This study describes and compares DiCE, AIDE, and genetic-DiCE. This is achieved by quantitatively assessing the performance of these explainers using metrics defined in the literature and by qualitatively evaluating their outputs using visualizations such as parallel coordinates plots that reveal underlying alignment patterns between training data and the CFs.
+
+The experiment is written as a python package. It starts with dataset exploration and preprocessing. The package computes detailed statistics for each dataset. This step is critical for understanding the data characteristics that will influence both model training and the counterfactual explanation process. The next phase involves training the black-box classifiers. Both Random Forests, which could consist of hundreds or even thousands of individual decision trees, and Deep Neural Networks, with vast parameter spaces, are trained on these standardized tabular datasets. After model training, extensive hyperparameter tuning is performed, ensuring that each model achieves optimal performance.
+
+After the preparatory phase is done, each method produces sets of counterfactuals based on a randomly selected instance intended to explain the prediction, with their output counterfactuals being directly compared against a comprehensive suite of quantitative metrics. Finally, the project culminates with a detailed visualization and statistical analysis step. Interactive visualizations, including parallel coordinates plots and scatterplots of the metrics, are employed to examine trends of the generated counterfactuals. These visual tools are consistent with Exploratory Data Analysis (EDA), which involves thoroughly inspecting the the data, which will help to interpret the results from the quantitative evaluations and map them to the mechanisms for each method.
+
+\section{Project Structure}
+The document is structured as follows:
+\begin{itemize}
+    \item \textbf{Chapter 1:} Outlines the motivation, research questions, project overview, and report structure.
+    \item \textbf{Chapter 2:} Provides the background and related work in interpretable machine learning and counterfactual explanations, including the definition of desirable properties and a review of existing methods like DiCE, DiCE-genetic/GeCo, and AIDE.
+    \item \textbf{Chapter 3:} Details the problem specification, including the selection of explainers for the experiment, the datasets used, and the metrics measured.
+    \item \textbf{Chapter 4:} Outlines the implementation of the experiment, covering data encoding, training of black-box models, and the generation of counterfactuals with DiCE and AIDE.
+    \item \textbf{Chapter 5:} Presents the results and evaluation, combining a quantitative outlook with metrics and a qualitative analysis using parallel coordinates plots.
+    \item \textbf{Chapter 6:} Concludes the report with a summary of the findings and directions for future work.
+    \item \textbf{Appendices:} Includes a user manual to run the experiment and a maintenance manual to modify or extend the project.
+\end{itemize}

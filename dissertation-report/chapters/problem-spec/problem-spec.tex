@@ -1,0 +1,59 @@
+\chapter{Problem Specification\label{chap:problem-spec}}
+% Not more than 3 pages
+% Fitness is the pushing action
+In this study, an experiment is conducted to statistically compare DiCE and AIDE based that combines both quantitative and qualitative evaluations of counterfactual explanation methods. the metrics as defined in section \ref{subsection:metrics}. The genetic method that comes along in DiCE's package is also evaluated since it is mechanistically similar to AIDE and was not compared previously in \citet{guidotti2024counterfactual}. Additionally, a qualitative approach is taken by juxtaposing the counterfactuals onto the dataset using a parameter coordinate plot.
+
+On the qualitative front, this visualization technique enables us to explore how changes in individual parameters are spread in the dataset, offering an intuitive visualization of the of counterfactual explanations. By mapping the counterfactuals onto the dataset, we can determine if the metrics agree with the data and the underlying mechanisms behind each method. we can identify clusters, outliers, and trends that might not be apparent through statistical metrics alone. The combination of statistical metrics and qualitative visualization provides a thorough assessment of each method’s strengths and limitations, contributing valuable insights into the practical application of counterfactual explanation techniques. Using those insights, the research questions in section \ref{research-questions} can be addressed. 
+%[Should I add hypothesis here?]
+%\begin{center}
+%\begin{itemize}
+%    \item \textbf{RQ1:} Is AIDE, an immune inspired algorithim, is well suited for the task of Counterfactual generation compared to DiCE? 
+%    \item \textbf{RQ2:} Is AIDE well suited for the task of Counterfactual generation compared to GeCo?
+%\end{itemize}
+%\end{center}
+
+\section{Selection of Explainer For the Experiment}
+% Justify
+So, why was DiCE chosen to go head to head with AIDE? According to categorization in \citet{guidotti2024counterfactual}, both explainers are quite similar. 
+and DiCE was evaluated and performed as well as or better than all the counterfactual methods. This measure in performance provides a strong argument: if AIDE demonstrates superior results in our experiments, it would not only be considered better than DiCE but also compared to all of the other counterfatual explainers.
+
+\begin{table}[ht]
+\centering
+\hspace*{-1.5cm} 
+\begin{tabular}{|l|l|l|l|l|l|l|l|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{Strategy} & \textbf{\shortstack{Model\\Agno.}} & \textbf{\shortstack{Data\\Agno.}} & \textbf{Cat.} & \textbf{Validity} & \textbf{Action.} & \textbf{Causality} & \textbf{Exogen.} & \textbf{Multiple} \\ \hline
+DiCE & OPT & DIF & TAB  & Yes  & Yes & Yes & No & Yes   & Yes    \\ \hline
+GECO & HSS  & Yes  & TAB & Yes  & Yes   & Yes   &  No  & Yes   & Yes   \\ \hline
+AIDE & OPT  & DIF  & TAB & Yes  & Yes   & Yes   & No  & Yes   & Yes   \\ \hline
+\end{tabular}
+\caption{Table that expands \citet{guidotti2024counterfactual}'s taxonomy by adding an entry for AIDE.}
+\label{tab:taxonomy}
+\end{table}
+
+\section{The Datasets}
+% Justify
+In order to maintain consistency in the results, the datasets chosen were the same as in \citet{guidotti2024counterfactual}'s experiment. These datasets are tabular, which is common in XAI research, and widely recognized as standard benchmarks within the field. The datasets are:
+
+\begin{itemize}
+    \item \textbf{adult:} often called the Census Income dataset, is extracted from the 1994 US Census and is used to predict whether an individual earns over \$50K per year \citep{dua2017uci}.
+    \item \textbf{fico:} The dataset consists of anonymized consumer credit records that include various financial attributes such as credit history, outstanding debt, and payment behavior. It is used for developing and evaluating credit scoring models as well as for research into fairness in lending \citep{chen2018interpretable}.
+    \item \textbf{compas:} This dataset contains recidivism risk scores and related criminal history information for defendants from Broward County, Florida. It has been extensively analyzed in studies on algorithmic fairness and bias in criminal justice decision-making \citep{washington2018argue}.
+    \item \textbf{german\_credit:} Also known as the German Credit Data, this dataset provides demographic and financial information about individuals to classify credit risk \citep{elsas1998relationship}. 
+\end{itemize}
+
+% Should I go into more detail here or next chapter?
+\section{The Measured Metrics \label{sec:measured-metrics}}
+% Justify
+
+The chosen metrics for this experiment are Size, Dissimilarity, Runtime, Actionability, Diversity. This selection ensures an exhaustive evaluation while accounting for time constraints.
+
+Metrics like Instability do not improve explanation quality nor does it matter to the end user. Although Implausibility does improve the quality of an explanation, Actionability has a higher influence to enforce realism. Lastly, Discriminative Power as mentioned in section \ref{subsection:properties} is most certainly better measured using human participants to visualize the changes in the counterfactual and query instance like done in \citet{forrest2021contrastive}. Therefore, the chosen metrics form a comprehensive set that prioritizes properties that are user centric, practical, and qualitative.
+
+\section{The Data Perspective}
+% Justify
+A foundational aspect of any robust data analysis a deep understanding of the underlying data \citep{tukey1977exploratory}. This aligns perfectly with the principles of Exploratory Data Analysis (EDA), which emphasizes the necessity of scrutinizing data to uncover patterns, validate assumptions, and formulate hypotheses before formal modeling. The characteristics inherent to the dataset significantly shape the behaviour of machine learning models, thereby likely influencing the nature and reliability of the explanations they produce. Therefore, a diligent exploration of the data's distributions, inter-feature relationships, and potential inherent biases is vital.
+
+The tipping case study offers a clear illustration of how exploratory and confirmatory approaches can complement one another in data analysis \citep{cook2025}. In this example, a restaurant’s tipping data is first transformed by calculating a tip percentage, an intuitive re-expression of the raw values. Initially, a full linear model is fitted using multiple predictors (such as total bill, party size, sex, smoker status, day, and time), yet the analysis reveals that only the size of the dining party significantly affects the tip percentage. By refining the model to include solely this predictor, the analysis underscores how a single variable can capture the essence of the tipping behavior, even though the refined model explains only a small fraction of the variance. This process, which involves creating insightful visualizations and diagnostic plots to assess model fit and underlying data patterns, embodies the spirit of EDA.
+
+By prioritizing the visual exploration and thorough understanding of the data, researchers can enhance the robustness and interpretability of their findings, ultimately leading to more reliable evaluations of counterfactual and other XAI methods.

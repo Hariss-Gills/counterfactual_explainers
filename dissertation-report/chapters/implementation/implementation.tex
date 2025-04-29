@@ -1,0 +1,219 @@
+\chapter{Implementation\label{chap:implementation}}
+
+%Issues and programming - 7 pages
+%Steps i needed to take to run these algos
+The project is available as a \href{https://github.com/Hariss-Gills/counterfactual_explainers}{Python package}. This will follow a similar approach to \citet{guidotti2024counterfactual}. A pain point throughout this project is the versioning of the \inlinecode{tensorflow} package. This is because DiCE and AIDE were developed with specific versions in mind. To combat this discrepancy, two different virtual environments (venv) are required. One with \inlinecode{tensorflow==2.13.0} for DiCE, and another with a newer \inlinecode{tensorflow==2.18.0} for AIDE. Moreover, there is a range  of a support Python versions for each \inlinecode{tensorflow} package. In this case, version \inlinecode{3.11.11} was chosen since it is the \href{https://www.tensorflow.org/install/source}{latest version} that is available for the two above versions.
+
+\section{Encoding the Datasets}
+Before the encoding step the compas dataset needed to be cleaned up. This is done by selecting key columns, converting date strings to datetime objects, and computing a new feature...\inlinecode{length\_of\_stay}. It normalizes the data by taking absolute values for fields that could have erroneous negative values and fills missing data with the most common values. 
+
+A critical step in the data preprocessing pipeline is the encoding of categorical variables into numerical representations, enabling compatibility with the machine learning models. The configuration file (called \inlinecode{config.toml}) defines the encoding strategy for each dataset. For instance, in the adult, german\_credit, and compas datasets, categorical features are transformed using one-hot encoding. This approach creates binary indicator variables for each category, preserving the nominal relationships without imposing any artificial ordinal structure. In contrast, the fico dataset does not apply an encoding strategy, since all of its features are continuous. In addition, we define non-actionable features similarly to \citet{guidotti2024counterfactual} as the following:
+
+\begin{itemize} \label{act-feat}
+    \item \textbf{adult}: age, education, marital status, relationship, race, sex, native country.
+    \item \textbf{compas}: age, sex, race.
+    \item \textbf{fico}: external risk estimate.
+    \item \textbf{german\_credit}: age, people under maintenance, credit history, purpose, sex, housing, foreign worker.
+
+\end{itemize}
+
+The encoding is integrated into our preprocessing pipeline via the \inlinecode{create\_data\_transformer} function, which dynamically selects the encoder based on the configuration. Once applied, the pipeline computes key statistics including the total number of features before and after encoding. This not only facilitates a quantitative evaluation of the dimensionality expansion caused by one-hot encoding but also helps to assess the impact on downstream model performance. The following are the properties of the dataset found by the \inlinecode{dataset\_stats.py} script avalible in the \inlinecode{dataset\_stats.csv} file in the results directory.
+
+
+\begin{table}[ht]
+\centering
+\hspace*{-2.5cm} 
+\resizebox{1.3\textwidth}{!}{%
+\begin{tabular}{|l|r|r|r|r|r|r|r|}
+\hline
+\textbf{Dataset}         & \textbf{Num Recs} & \textbf{Num Feat} & \textbf{Num Cont Feat} & \textbf{Num Cat Feat} & \textbf{Num of Act Feat} & \textbf{Num of OHE Feat} & \textbf{Num of Labels} \\
+\hline
+adult           & 32561    & 12       & 4             & 8            & 5               & 12            & 2             \\
+\hline
+german\_credit  & 1000     & 20       & 7             & 13           & 13              & 20            & 2             \\
+\hline
+fico            & 10459    & 23       & 23            & 0            & 22              & NaN                & 2             \\
+\hline
+compas          & 7214     & 10       & 7             & 3            & 7               & 10            & 3             \\
+\hline
+\end{tabular}%
+}
+\caption{Table that provides feature information about the datasets. \textbf{Num Recs} denotes the total number of records in the dataset. \textbf{Num Feat} represents the total number of features. \textbf{Num Cont Feat} shows the count of continuous (numerical) features, while \textbf{Num Cat Feat} indicates the count of categorical (discrete) features. \textbf{Num of Act Feat} specifies the number of actionable features, and \textbf{Num of OHE Feat} displays the number of one-hot encoded features. Finally, \textbf{Num of Labels} refers to the number of label columns or target variables.}
+\end{table}
+
+\section{Training the Black Box Models}
+The training of machine learning models for this project involves constructing, tuning, and evaluating two types of classifiers: a Random Forest (RF) and a Deep Neural Network (DNN). This can be found in \inlinecode{train\_models.py}. These models serve as the underlying black-box classifiers whose decisions are later explained using either as DiCE or AIDE. 
+As previously explained, DiCE and AIDE utilize different versions of tensorflow, the training pipeline accommodates this by allowing the passing of arguments with \inlinecode{--explainer} or \inlinecode{-e} for shorthand. The implementation follows a structured workflow that encompasses model configuration, hyperparameter tuning, evaluation, and persistence.
+
+\subsection{Model Configuration and Construction} The training process begins by reading the dataset configuration, defining the feature set, target variable, and associated encoding/scaling strategies. The \inlinecode{train\_and\_evaluate\_for\_dataset} function orchestrates the training and evaluation process. Key configuration elements include: 
+
+\begin{itemize} \item \textbf{Random Forest:} The model is initialized with the \inlinecode{RandomForestClassifier()} class from \inlinecode{scikit-learn}. This model will be used for the GeCo algorithm in the \inlinecode{dice-ml} package.
+\item \textbf{DNN:} Built dynamically using the \inlinecode{build\_dnn} function, which constructs a sequential neural network with configurable dimensions, activations, and dropout layers. By default, it uses a three-layer structure with ReLU activation and sigmoid activation for binary classification.
+\end{itemize}
+
+\subsection{Hyperparameter Tuning} To optimize the performance of the models, hyperparameter tuning is conducted using \inlinecode{RandomizedSearchCV}, which samples from a defined parameter space to identify the best-performing configuration. This search strategy balances computational efficiency with the exploration of potential parameter combinations. This can be improved by using a more exhaustive option like \inlinecode{GridSearchCV}. To facilitate this in \inlinecode{keras}, the \inlinecode{scikeras} package is used by providing a wrapper that has an \inlinecode{sklearn} interface. This did cause issue an though since \inlinecode{ClassifierMixin} does not have a superclass, the \inlinecode{Tags} class is used instantiate some tags. \citet{guidotti2024counterfactual}'s approach does not show how the DNN's were tuned.
+
+The parameter space for Random Forest includes: 
+\begin{itemize} 
+\item \inlinecode{n\_estimators}: Number of decision trees in the ensemble.
+\item \inlinecode{max\_depth}: Maximum depth of individual trees.
+\item \inlinecode{min\_samples\_split}: Minimum number of samples required to split a node.
+\item \inlinecode{min\_samples\_leaf}: Minimum number of samples required at a leaf node.
+\item \inlinecode{class\_weight}: Balances class weights to address class imbalance
+\end{itemize}
+
+While the DNN has:
+\begin{itemize}
+    \item \inlinecode{dropout\_<layer>}: Dropout rates applied after the input and hidden layers.
+    \item \inlinecode{dim\_1} and \inlinecode{dim\_2}: Dimensions of the first and second hidden layers.
+    \item \inlinecode{activation\_<x>}: Activation functions for the input and hidden layers.
+\end{itemize}
+
+The \inlinecode{train\_model} function handles the construction of a machine learning pipeline that integrates the data preprocessing transformer and the classifier. Randomized search is then applied with 5-fold cross-validation to identify the best pipeline configuration. With a \inlinecode{random\_state} to ensure consistent results by setting the seed.
+
+\subsection{Model Evaluation and Metrics} 
+For each dataset, the data is split into training and testing sets using \inlinecode{train\_test\_split}, with stratification applied to preserve class distributions and a \inlinecode{test\_size=0.3}. Model performance is evaluated on both the training and test sets using multiple metrics to guarantee completeness. The below definitions are provided by \citet{burkov2020machine}.
+
+\begin{itemize} 
+\item \textbf{Accuracy:} Measures the number of correctly classified examples, divided by the total
+number of classified example.
+\item \textbf{F1 Macro:} Assesses the balance between precision and recall across all classes, weighted equally.
+\item \textbf{F1 Micro:} Aggregates contributions from all classes to compute a single metric, providing insight into the overall predictive performance. 
+\end{itemize}
+
+The \inlinecode{evaluate\_model} function computes these metrics and stores the results for each trained model.
+Thus, upon completing the training and evaluation, results are aggregated and saved to a CSV file named \inlinecode{training\_<explainer>.csv}, where \inlinecode{<explainer>} indicates the explainer framework used (either AIDE or DiCE). The results for the models used in the CF generation are provided below:
+
+
+\begin{table}[htbp]
+\centering
+\hspace*{-2.5cm} 
+\resizebox{1.3\textwidth}{!}{
+\begin{tabular}{ll
+                S[table-format=1.2]
+                S[table-format=1.2]
+                S[table-format=1.2]
+                S[table-format=1.2]
+                S[table-format=1.2]
+                S[table-format=1.2]}
+\toprule
+{Dataset} & {Classifier} & {Accuracy Train} & {Accuracy Test} & {F1 Macro Train} & {F1 Macro Test} & {F1 Micro Train} & {F1 Micro Test} \\
+\midrule
+\multirow{2}{*}{adult}          
+  & RF   & 0.87 & 0.86 & 0.80 & 0.79 & 0.87 & 0.86 \\
+  & DNN  & 0.84 & 0.84 & 0.75 & 0.75 & 0.84 & 0.84 \\
+\multirow{2}{*}{german\_credit}  
+  & RF   & 0.82 & 0.75 & 0.80 & 0.72 & 0.82 & 0.75 \\
+  & DNN  & 0.71 & 0.70 & 0.46 & 0.41 & 0.71 & 0.70 \\
+\multirow{2}{*}{fico}           
+  & RF   & 0.80 & 0.72 & 0.79 & 0.72 & 0.80 & 0.72 \\
+  & DNN  & 0.70 & 0.69 & 0.69 & 0.68 & 0.70 & 0.69 \\
+\multirow{2}{*}{compas}         
+  & RF   & 0.69 & 0.59 & 0.65 & 0.55 & 0.69 & 0.59 \\
+  & DNN  & 0.61 & 0.59 & 0.49 & 0.48 & 0.61 & 0.59 \\
+\bottomrule
+\end{tabular}}
+\caption{Table displaying the performance metrics for DiCE's Black Box classifiers on the Datasets (Rounded to Two Decimal Places). They are slightly different to the results in \citet{guidotti2024counterfactual} due to the seeding.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\hspace*{-2.5cm}
+\resizebox{1.3\textwidth}{!}{
+\begin{tabular}{ll
+                S[table-format=1.2]
+                S[table-format=1.2]
+                S[table-format=1.2]
+                S[table-format=1.2]
+                S[table-format=1.2]
+                S[table-format=1.2]}
+\toprule
+{Dataset} & {Accuracy Train} & {Accuracy Test} & {F1 Macro Train} & {F1 Macro Test} & {F1 Micro Train} & {F1 Micro Test} \\
+\midrule
+adult            & 0.81 & 0.81 & 0.65 & 0.64 & 0.81 & 0.81 \\
+german\_credit   & 0.76 & 0.71 & 0.64 & 0.56 & 0.76 & 0.71 \\
+fico             & 0.70 & 0.70 & 0.70 & 0.69 & 0.70 & 0.70 \\
+compas           & 0.62 & 0.62 & 0.54 & 0.54 & 0.62 & 0.62 \\
+\bottomrule
+\end{tabular}}
+\caption{Table displaying the performance metrics for AIDE's DNN Classifier on the Datasets (Rounded to Two Decimal Places).}
+\end{table}
+
+\subsection{Model Persistence}
+To facilitate downstream counterfactual generation and reproducibility, the trained models are saved locally. The \inlinecode{save\_model} function handles this so that models are saved with descriptive filenames that include the model type, dataset name, and explainer framework used. While DNN models are saved in \inlinecode{.keras} format to preserve model architecture, weights, and configuration, the Random Forest models are serialized using \inlinecode{joblib} and stored in \inlinecode{.pkl} format.
+
+\section{Generating Counterfactual with DiCE}
+The generation of counterfactual explanations using the DiCE framework is done in \inlinecode{gen\_cfs\_dice.py}. It uses the models trained in the previous step with the actionability constraints in section \ref{act-feat} and the \inlinecode{dice-ml} package. This process is implemented in the \inlinecode{generate\_cfs\_for\_dataset} function, which implements the model loading, data transformation, and counterfactual generation. For some reason, \citet{guidotti2024counterfactual}'s approach does encodes the data before passing it over to DiCE even though the documentation recommends using the internal methods.
+
+\subsection{DiCE Initialization}
+DiCE requires three core objects for explanation generation:
+\begin{itemize}
+    \item \textbf{Data Object:} Encapsulates the training data and metadata (continuous/categorical features, target variable). Constructed from the training set using \inlinecode{Dice\_ml.Data()}. Since the sklearn models are wrapped in a pipeline object, the datasets target variables do not need to be explicitly encoded unlike models with a tensoflow backend. 
+    \item \textbf{Model Object:} Wraps the Black Box model with a backend interface. For Random Forests (RF), the \inlinecode{sklearn} backend is used, while Deep Neural Networks (DNNs) employ the \inlinecode{TF2} backend with a \inlinecode{ohe-min-max} normalization function. This initially, caused a lot of issues since by default DiCE's implementation does not impute the dataset with \inlinecode{ohe-min-max}. So, the dimensions of the input data was larger than what the model accepts. To remedy this, DiCE does provide the option to pass in a transformation function to the \inlinecode{FunctionTransformer} object. However, you \href{https://github.com/interpretml/DiCE/blob/f93a2d35937f451d8340363895699859d862a6da/dice_ml/utils/helpers.py#L329}{cannot} pass in a \inlinecode{inverse\_func} to decode the data. This makes the generated CFs very hard to interpret to the end user which is not in the spirit of XAI. Consequently, this implementation simply imputes the dataset before handling the encoding to DiCE. Regardless, the \inlinecode{func} parameter is more suitable for the Model Object. 
+    \item \textbf{Dice Object:} Points to different implementations of DiCE based on different frameworks such as Tensorflow or PyTorch or sklearn. So this implementation uses \inlinecode{"genetic"} method for RF models and \inlinecode{"gradient"} for DNN models.
+\end{itemize}
+
+\subsection{Counterfactual Generation Process}
+For each dataset, a specific query instance is sampled, the process:
+\begin{enumerate}
+\item Configures actionable features by excluding non-actionable attributes defined in the dataset configuration. Yet again, this would be better tailored for the Data object. Also due, compas's ternery classification, a specific target class is given.
+\item Generates counterfactuals iteratively for increasing required counts (1 to 20 CFs).
+\item Handles DiCE-specific exceptions (e.g., \inlinecode{UserConfigValidationException}) when no valid CFs are found.
+\item The counterfactuals and runtimes are saved to CSV files for further analysis.
+\end{enumerate}
+
+It is very important to note that the DiCE-compas and genetic-DiCE-fico combination failed to generate CFs for the specified query instance but did manage to find CFs for some other instances. This shows that DiCE cannot guarantee CFs for all query instances. 
+
+\section{Generating Counterfactuals with AIDE}
+The generation of counterfactual explanations using AIDE follows a fundamentally different paradigm compared to DiCE. Unlike DiCE, AIDE does not have a package so the code was reused from the \href{https://github.com/ColonelPride/AIDE_notebook/tree/master}{Jupyter Notebook} in \citet{forrest2021contrastive}. The script \inlinecode{aide\_explainer.py} demonstrates AIDE's unique approach to balancing exploration and exploitation in counterfactual search.
+
+\subsection{Changes to AIDE}
+In order to get AIDE running the following changes were added:
+
+\begin{itemize}
+    \item The code that writes to an sqlite DB was unnecessary so it was commented out.
+    \item Using randomness, the initial population of counterfactual cells can be generated. Despite that, there is an upper limit constraint which was initially 10 and bumped up to a 100 to ensure the required initial population is reached, which often was not. This does unfortunetely increase runtime significantly.
+    \item The trained models expected 2D tensors \inlinecode{(batch\_size=1, features)} while AIDE's predictions used 3D tensors. This was changed to handle the 2D inputs to return a prediction. Again due to compas's three classes, the two other classes compared to the query instance had to be merged.
+    \item The dataframe returned from AIDE is not decoded. So the \inlinecode{decode\_df} function handles this to return the CFs in a human-readable form just like DiCE.
+    \item In order to maintain consistency in encoding, the data reading functions were modified to use common \inlinecode{sklearn} strategies to get the data dictionary, which preserves categorical semantics.
+\end{itemize}
+
+\subsection{Dataset-Specific Hyperparameter Considerations}
+%Another small improvement was to increase the new cell rate to 1.0. This is to not have a ridiculously high initial population size which would harm the runtime and improve any possible diversity lost.
+The AIDE algorithm is not really designed to be run iteratively to return a specified number of counterfactuals. When taking an iterative approach similar to DiCE, the initial population was chosen to be around 50 to ensure that a large proportion of CFs are eliminated by the suppression process. Consequently, an optimal affinity constant (maximized to match the required amount but minimized to be as diverse as possible \ref{tab:hyperparams}) needs to be found for each specified number of counterfactuals. This is a very challenging task that requires an exhaustive search for every dataset and required number of CFs. 
+
+During a few runs using the iterative approach, it was found that AIDE is very stable; i.e., if $x$ CFs were required the same $x-1$ were present in a previous run. So in fact a single-shot run to generate 20 with an optimal affinity constant, would have an improved runtime but have a theoretical possibility of a set of less diverse CFs, which was not found in practice. Henceforth, the single-shot method was preferred and the first $x$ were chosen out of the 20 CFs, where $x$ is the required number of CFs. The \inlinecode{DATASET\_PARAMS} dictionary contains these optimal values for the 20 required CFs.
+
+\subsection{Counterfactual Generation Process}  
+For each dataset and same query instance, AIDE employs a single-shot generation strategy:  
+\begin{enumerate}  
+    \item Initializes an artificial immune explainer with parameters depending on the dataset.  
+    \item Generates the 20 counterfactuals.
+    \item Just like in DiCE, the decoded counterfactuals and runtimes are saved to CSV files as long as the output dataframe is not empty.
+\end{enumerate}
+
+It is also interesting to see that AIDE managed to generate the counterfactuals for the query instance in every dataset whereas DiCE struggled.
+\section{Plotting and Calculating the Metrics}
+With everything prepared, the next step is to evaluate the counterfactual explanations produced by the different methods. This evaluation relies on a set of quantitative metrics computed by the \inlinecode{calculate\_metrics.py} script and subsequently visualized and analyzed by the \inlinecode{plot\_results.py} script. It handles any File I/O exceptions handling missing counterfactuals.
+
+\subsection{Metrics Calculation}
+The \inlinecode{calculate\_metrics.py} script is responsible for quantifying the quality of generated counterfactuals based on several established criteria. It operates by first loading pre-generated counterfactual instances for a specific dataset, model (DNN or RF), and explainer (AIDE or DiCE) stored in csv files. For each combination of dataset, model, and explainer specified
+in the configuration, it performs the following key steps:
+
+\begin{enumerate}
+    \item \textbf{Data Encoding for Metrics:} Although it is possible to calculate the metrics on the decoded data, it tends to skew the metrics way higher than the results in \citet{guidotti2024counterfactual}. So this implementation re-uses the data transformation pipeline defined earlier \inlinecode{create\_data\_transformer} to encode both the query instance and its counterfactuals. This ensures consistency in feature representation for metric calculations, handling continuous and categorical features appropriately.
+    \item \textbf{Median Absolute Deviation (MAD) Calculation:} To normalize distances for continuous features, the Median Absolute Deviation (MAD) is calculated for each continuous feature using the training portion of the dataset (\inlinecode{calc\_mad}). Using MAD provides a robust measure of dispersion, less sensitive to outliers than standard deviation. A value of 1.0 is used if MAD is zero to prevent division by zero.
+    \item \textbf{Metrics Computation:} For a given query instance and its generated counterfactuals (up to the requested number), the script computes the metrics defined in section \ref{sec:measured-metrics}.
+    \item \textbf{Results:} The calculated metrics for each number of requested counterfactuals (from 1 to 20) are aggregated and saved into a dedicated metrics csv file.
+\end{enumerate}
+
+\subsection{Visualization and Statistical Analysis}
+The \inlinecode{plot\_results.py} script utilizes the metric CSV files to provide plots for EDA and statistical analysis of the different counterfactual explanation methods. The plots are colored to easily distinguish the dataset (grey), the query instance (magenta), and counterfactuals from AIDE (green), DiCE (blue), and DiCE-genetic/GeCo (red). Its main functionalities include:
+
+\begin{itemize}
+    \item \textbf{Metric Plots:} For each dataset, this function reads the metric csv files for available methods (AIDE with DNN, DiCE with DNN, DiCE with RF). It then generates line plots using \inlinecode{plotly}'s scatterplots with lines, showing how each metric changes as the number of requested counterfactuals increases (from 1 to 20). Each method is represented by a different colored line on the plot, allowing for direct visual comparison. Subplots are used to display all metrics in a single figure. These plots are saved as interactive HTML files.
+
+    \item \textbf{Parallel Coordinates Plots:} To visualize the relationship between the original data, the query instance, and the generated counterfactuals in the high-dimensional feature space, a parallel coordinates plot is generated using \inlinecode{plotly}'s \inlinecode{Parcoords} class. The procedure preprocesses the data (imputation and encoding of categorical features), combines the original dataset samples, the query instance, and the counterfactuals from different methods into one dataframe. Each feature and the target variable is represented as a vertical axis. Data points are shown as lines crossing these axes. This allows for visual inspection of where the query instance lies relative to the data, and how the counterfactuals modify features to achieve the desired outcome class. Yet again, the plots are saved as interactive HTML files.
+    \item \textbf{Statistical Analysis:} Alongside plotting, the script performs statistical tests to determine if the observed differences in metric scores between the methods are statistically significant. For each metric within a dataset, it performs
+    An Analysis of Variance (ANOVA) test to check for any significant difference across the means of the different CF methods. If the ANOVA result is significant, a pairwise Tukey Honest Significant Difference (HSD) test is performed to identify which specific pairs of methods have significantly different mean scores for that metric. Dataframes and csv files have been heavily used in the project to document everything, so without a doubt the results of these tests are also saved to csv files. This analysis is also performed across all datasets for each metric in the main execution block to assess overall performance trends.
+\end{itemize}

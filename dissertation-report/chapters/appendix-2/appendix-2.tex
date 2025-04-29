@@ -1,0 +1,542 @@
+\chapter{Maintenance Manual\label{chap:maintenance-manual}}
+
+More API docs are available in the \inlinecode{counterfactual\_explainers/docs} directory.  
+
+\section{\inlinecode{counterfactual\_explainers.dataset\_stats}}
+\label{sec:dataset_stats}
+A module for generating dataset statistics and preprocessing pipeline metrics.
+
+This module provides functionality to analyze datasets and their preprocessing
+pipelines, calculating key metrics about feature types, encoding results, and
+label distributions. Results are exported to CSV for easy reporting.
+
+\paragraph{Key functions:}
+\begin{itemize}
+    \item \inlinecode{get\_pipeline\_stats}: Calculates preprocessing pipeline metrics for a dataset.
+    \item \inlinecode{main}: Main execution flow that processes all configured datasets.
+\end{itemize}
+
+\subsection{\inlinecode{get\_pipeline\_stats()}}
+\label{func:get_pipeline_stats}
+
+\begin{lstlisting}
+counterfactual_explainers.dataset_stats.get_pipeline_stats(data: DatasetDict) -> dict[str, int | None]
+\end{lstlisting}
+
+Analyzes a dataset and its preprocessing pipeline to calculate key metrics.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{data}: Dataset dictionary containing features, target, and metadata from \inlinecode{read\_dataset}. Must include:
+                \begin{itemize}
+                    \item \inlinecode{continuous\_features}: List of continuous feature names
+                    \item \inlinecode{categorical\_features}: List of categorical feature names
+                    \item \inlinecode{features}: Full feature DataFrame
+                    \item \inlinecode{target}: Target variable Series
+                    \item \inlinecode{non\_act\_features}: List of non-actionable feature names
+                    \item \inlinecode{encode}: Encoding strategy used for categorical features
+                    \item \inlinecode{scaler}: Scaling strategy used for continuous features
+                \end{itemize}
+        \end{itemize}
+    \item[Returns:] Dictionary containing calculated metrics with keys:
+        \begin{itemize}
+            \item 'Number of Records': Total number of instances in the dataset
+            \item 'Number of Features': Original number of features before encoding
+            \item 'Number of Continuous Features': Count of numerical features
+            \item 'Number of Categorical Features': Count of categorical features
+            \item 'Number of Actionable Features': Features available for modification
+            \item 'Number of Encoded Features': Resulting features after encoding
+            \item 'Number of Labels': Distinct classes in the target variable
+        \end{itemize}
+    \item[Return type:] \inlinecode{dict}
+\end{description}
+
+\subsection{\inlinecode{main()}}
+\label{func:dataset_stats_main}
+
+\begin{lstlisting}
+counterfactual_explainers.dataset_stats.main() -> None
+\end{lstlisting}
+
+Main execution function that processes all datasets in configuration. Reads and cleans configuration, processes each dataset listed in the configuration file, calculates pipeline statistics, and exports results to a CSV file in the results directory.
+
+% --- Module: counterfactual_explainers.train_models ---
+\section{\inlinecode{counterfactual\_explainers.train\_models}}
+\label{sec:train_models}
+
+A module for training and evaluating machine learning models with explainer integration.
+
+This module provides end-to-end functionality for:
+\begin{itemize}
+    \item Configuring and training Random Forest and DNN models
+    \item Hyperparameter tuning using RandomizedSearchCV
+    \item Model evaluation with multiple metrics
+    \item Integration with different explainer frameworks (AIDE/DICE)
+    \item Saving trained models and results
+\end{itemize}
+
+\paragraph{Key components:}
+\begin{itemize}
+    \item \inlinecode{build\_dnn}: Constructs customizable neural network architectures
+    \item \inlinecode{train\_model}: Handles model training with hyperparameter tuning
+    \item \inlinecode{evaluate\_model}: Calculates performance metrics
+    \item \inlinecode{train\_and\_evaluate\_for\_dataset}: Manages dataset-specific training workflows
+    \item \inlinecode{main}: Coordinates end-to-end training process
+\end{itemize}
+
+
+\subsection{\inlinecode{build\_dnn()}}
+\label{func:build_dnn}
+
+\begin{lstlisting}
+counterfactual_explainers.train_models.build_dnn(
+    dim_0, dim_out, dim_1=128, dim_2=64, activation_0='relu',
+    activation_1='relu', activation_2='relu', dropout_0=0.3,
+    dropout_1=0.1, dropout_2=0.01
+)
+\end{lstlisting}
+
+Construct a deep neural network architecture with configurable layers. Creates a sequential neural network with dense layers and optional dropout. The final layer uses sigmoid activation for binary classification or softmax for multi-class (automatically determined during training).
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{dim\_0}: Input dimension size (must match preprocessed feature dimension)
+            \item \inlinecode{dim\_out}: Output dimension size (number of classes)
+            \item \inlinecode{dim\_1}: First hidden layer size, default 128
+            \item \inlinecode{dim\_2}: Second hidden layer size, default 64
+            \item \inlinecode{activation\_0}: Activation for input layer, default 'relu'
+            \item \inlinecode{activation\_1}: Activation for first hidden layer, default 'relu'
+            \item \inlinecode{activation\_2}: Activation for second hidden layer, default 'relu'
+            \item \inlinecode{dropout\_0}: Dropout rate after input layer, default 0.3
+            \item \inlinecode{dropout\_1}: Dropout rate after first hidden layer, default 0.1
+            \item \inlinecode{dropout\_2}: Dropout rate after second hidden layer, default 0.01
+        \end{itemize}
+    \item[Returns:] Uncompiled Keras Sequential model
+    \item[Return type:] \inlinecode{keras.models.Sequential} % Adjust based on actual Keras import
+\end{description}
+
+\subsection{\inlinecode{evaluate\_model()}}
+\label{func:evaluate_model}
+
+\begin{lstlisting}
+counterfactual_explainers.train_models.evaluate_model(
+    y_true: numpy.ndarray, y_pred: numpy.ndarray
+) -> dict[str, float]
+\end{lstlisting}
+
+Calculate evaluation metrics for model performance.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{y\_true}: Ground truth labels (\inlinecode{numpy.ndarray})
+            \item \inlinecode{y\_pred}: Model predictions (\inlinecode{numpy.ndarray})
+        \end{itemize}
+    \item[Returns:] Dictionary containing:
+        \begin{itemize}
+            \item \inlinecode{accuracy}: Overall accuracy
+            \item \inlinecode{f1\_macro}: Macro-averaged F1 score
+            \item \inlinecode{f1\_micro}: Micro-averaged F1 score
+        \end{itemize}
+    \item[Return type:] \inlinecode{dict}
+\end{description}
+
+\subsection{\inlinecode{parse\_arguments()}}
+\label{func:parse_arguments}
+
+\begin{lstlisting}
+counterfactual_explainers.train_models.parse_arguments()
+\end{lstlisting}
+
+Parse command line arguments for explainer framework selection.
+
+\begin{description}
+    \item[Returns:] Configured argument parser with explainer type
+    \item[Return type:] \inlinecode{argparse.ArgumentParser}
+\end{description}
+
+\subsection{\inlinecode{save\_model()}}
+\label{func:save_model}
+
+\begin{lstlisting}
+counterfactual_explainers.train_models.save_model(
+    best_pipeline: sklearn.pipeline.Pipeline, model_name: str,
+    dataset_name: str, explainer_type: str
+) -> pathlib.Path
+\end{lstlisting}
+
+Save trained model to disk in format appropriate for each model type.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{best\_pipeline}: Trained scikit-learn pipeline
+            \item \inlinecode{model\_name}: Type of model ('RF' or 'DNN')
+            \item \inlinecode{dataset\_name}: Name of dataset used for training
+            \item \inlinecode{explainer\_type}: Type of explainer ('aide' or 'dice')
+        \end{itemize}
+    \item[Returns:] Location where model was saved
+    \item[Return type:] \inlinecode{pathlib.Path}
+\end{description}
+
+\subsection{\inlinecode{set\_random\_seeds()}}
+\label{func:set_random_seeds}
+
+\begin{lstlisting}
+counterfactual_explainers.train_models.set_random_seeds(seed: int) -> None
+\end{lstlisting}
+
+Set random seeds for reproducibility across multiple libraries.
+WARNING: May exhibit unexpected behavior with certain TensorFlow versions or when combined with GPU computations.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{seed}: Integer value to seed all random number generators
+        \end{itemize}
+\end{description}
+
+\subsection{\inlinecode{train\_and\_evaluate\_for\_dataset()}}
+\label{func:train_and_evaluate_for_dataset}
+
+\begin{lstlisting}
+counterfactual_explainers.train_models.train_and_evaluate_for_dataset(
+    dataset_name: str, config: dict[str, Any], explainer_type: str
+) -> list[dict[str, Any]]
+\end{lstlisting}
+
+Orchestrate model training and evaluation for a single dataset.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{dataset\_name}: Name of dataset to process
+            \item \inlinecode{config}: Loaded configuration dictionary
+            \item \inlinecode{explainer\_type}: Type of explainer framework being used
+        \end{itemize}
+    \item[Returns:] List of dictionaries containing training results for each model
+\end{description}
+
+\subsection{\inlinecode{train\_model()}}
+\label{func:train_model}
+
+\begin{lstlisting}
+counterfactual_explainers.train_models.train_model(
+    X_train: pandas.DataFrame, y_train: pandas.Series, preprocessor: Any,
+    model: Any, params_model: dict[str, Any], seed: int
+) -> sklearn.pipeline.Pipeline
+\end{lstlisting}
+
+Train a machine learning model with hyperparameter tuning. Constructs a scikit-learn pipeline with preprocessing and classifier, then performs randomized search for hyperparameter optimization.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{X\_train}: Training features DataFrame
+            \item \inlinecode{y\_train}: Training target Series
+            \item \inlinecode{preprocessor}: Configured data preprocessing transformer
+            \item \inlinecode{model}: Uninitialized classifier model
+            \item \inlinecode{params\_model}: Hyperparameter search space for RandomizedSearchCV
+            \item \inlinecode{seed}: Random seed for reproducibility
+        \end{itemize}
+    \item[Returns:] Best performing pipeline from hyperparameter search
+    \item[Return type:] \inlinecode{sklearn.pipeline.Pipeline}
+\end{description}
+
+
+% --- Module: counterfactual_explainers.gen_cfs_aide ---
+\section{\inlinecode{counterfactual\_explainers.gen\_cfs\_aide}}
+\label{sec:gen_cfs_aide}
+
+A module for generating counterfactual explanations using the AIDE framework.
+
+This module provides functionality for:
+\begin{itemize}
+    \item Loading pre-trained Keras models
+    \item Preparing dataset-specific configurations for AIDE
+    \item Generating counterfactual explanations using artificial immune networks
+    \item Handling dataset encoding/decoding for explanations
+    \item Saving counterfactual results and runtime metrics
+\end{itemize}
+
+\paragraph{Key components:}
+\begin{itemize}
+    \item \inlinecode{generate\_and\_save\_counterfactuals}: Core AIDE explanation generation workflow
+    \item \inlinecode{generate\_cfs\_for\_dataset}: Dataset-specific explanation orchestration
+    \item \inlinecode{decode\_df}: Helper for decoding encoded feature representations
+    \item \inlinecode{DATASET\_PARAMS}: Pre-configured parameters for different datasets
+\end{itemize}
+
+
+\subsection{\inlinecode{generate\_and\_save\_counterfactuals()}}
+\label{func:generate_and_save_counterfactuals}
+
+\begin{lstlisting}
+counterfactual_explainers.gen_cfs_aide.generate_and_save_counterfactuals(
+    model: keras.models.Model, X_test: pandas.DataFrame, index_in_arr: int,
+    aide_data_object: dict[str, Any], model_name: str, dataset_name: str,
+    prob_dict: dict[str, float]
+) -> None
+\end{lstlisting}
+
+Generate and persist counterfactual explanations using AIDE.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{model}: Pretrained Keras model for prediction
+            \item \inlinecode{X\_test}: Test features DataFrame
+            \item \inlinecode{index\_in\_arr}: Index of query instance in test set
+            \item \inlinecode{aide\_data\_object}: Dataset-specific configuration dictionary
+            \item \inlinecode{model\_name}: Type of ML model being explained
+            \item \inlinecode{dataset\_name}: Name of dataset being used
+            \item \inlinecode{prob\_dict}: Probability dictionary for target classes
+        \end{itemize}
+\end{description}
+
+\subsection{\inlinecode{generate\_cfs\_for\_dataset()}}
+\label{func:generate_cfs_for_dataset}
+
+\begin{lstlisting}
+counterfactual_explainers.gen_cfs_aide.generate_cfs_for_dataset(
+    dataset_name: str, config: dict[str, Any]
+) -> None
+\end{lstlisting}
+
+Orchestrate counterfactual generation workflow for a dataset.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{dataset\_name}: Name of dataset to process
+            \item \inlinecode{config}: Configuration dictionary with parameters
+        \end{itemize}
+\end{description}
+
+\subsection{\inlinecode{main()}}
+\label{func:gen_cfs_aide_main}
+
+\begin{lstlisting}
+counterfactual_explainers.gen_cfs_aide.main() -> None
+\end{lstlisting}
+
+Main execution function for AIDE counterfactual generation.
+
+
+% --- Module: counterfactual_explainers.calculate_metrics ---
+\section{\inlinecode{counterfactual\_explainers.calculate\_metrics}}
+\label{sec:calculate_metrics}
+
+A module for calculating counterfactual explanation metrics.
+
+This module provides functionality for:
+\begin{itemize}
+    \item Computing various counterfactual quality metrics (distance, diversity, actionability)
+    \item Encoding counterfactual data for metric calculation
+    \item Loading pre-generated counterfactual results
+    \item Generating comprehensive metric reports for different models and datasets
+\end{itemize}
+
+\paragraph{Key components:}
+\begin{itemize}
+    \item \inlinecode{calc\_mad}: Computes Median Absolute Deviation for continuous features
+    \item \inlinecode{calc\_distance}: Calculates normalized distance between instances
+    \item \inlinecode{calc\_diversity}: Measures diversity among counterfactual explanations
+    \item \inlinecode{encode\_cfs\_to\_dfs}: Preprocesses data for metric calculation
+    \item \inlinecode{calculate\_metrics\_for\_dataset}: Orchestrates metric calculation workflow
+\end{itemize}
+
+
+\subsection{\inlinecode{calc\_actionability()}}
+\label{func:calc_actionability}
+
+\begin{lstlisting}
+counterfactual_explainers.calculate_metrics.calc_actionability(
+    cf_row: pandas.Series, query_instance: pandas.DataFrame,
+    non_act_features: list[str]
+) -> int
+\end{lstlisting}
+
+Check if counterfactual makes changes to non-actionable features.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{cf\_row}: Counterfactual instance as pandas Series
+            \item \inlinecode{query\_instance}: Original query instance as DataFrame
+            \item \inlinecode{non\_act\_features}: List of non-actionable feature names
+        \end{itemize}
+    \item[Returns:] 1 if no changes to non-actionable features, 0 otherwise
+\end{description}
+
+\subsection{\inlinecode{calc\_changes()}}
+\label{func:calc_changes}
+
+\begin{lstlisting}
+counterfactual_explainers.calculate_metrics.calc_changes(
+    cf_row: pandas.Series, query_instance: pandas.Series,
+    features: list[str]
+) -> int
+\end{lstlisting}
+
+Count number of feature changes between counterfactual and query instance.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{cf\_row}: Counterfactual instance as pandas Series
+            \item \inlinecode{query\_instance}: Original query instance as pandas Series
+            \item \inlinecode{features}: List of feature names to consider
+        \end{itemize}
+    \item[Returns:] Number of changed features as integer
+\end{description}
+
+
+\subsection{\inlinecode{calc\_distance()}}
+\label{func:calc_distance}
+
+\begin{lstlisting}[language=Python, caption={Function Signature}]
+counterfactual_explainers.calculate_metrics.calc_distance(
+    cf_row: pandas.Series, query_instance: pandas.Series, mad: pandas.Series,
+    continuous_features: list[str], categorical_features: list[str]
+) -> float
+\end{lstlisting}
+
+Calculate normalized distance between counterfactual and query instance.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{cf\_row}: Counterfactual instance as pandas Series
+            \item \inlinecode{query\_instance}: Original query instance as pandas Series
+            \item \inlinecode{mad}: MAD values for continuous features (as pandas Series)
+            \item \inlinecode{continuous\_features}: List of continuous feature names
+            \item \inlinecode{categorical\_features}: List of categorical feature names
+        \end{itemize}
+    \item[Returns:] Combined normalized distance (continuous + categorical) as float
+    \item[Return type:] \inlinecode{float}
+\end{description}
+
+
+\subsection{\inlinecode{calc\_diversity()}}
+\label{func:calc_diversity}
+
+\begin{lstlisting}[language=Python, caption={Function Signature}]
+counterfactual_explainers.calculate_metrics.calc_diversity(
+    cfs: pandas.DataFrame, continuous_features: list[str],
+    categorical_features: list[str], feature_cols: list[str],
+    mad: pandas.Series
+) -> tuple[float, float]
+\end{lstlisting}
+
+Calculate diversity metrics for a set of counterfactuals.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{cfs}: DataFrame of counterfactual instances
+            \item \inlinecode{continuous\_features}: List of continuous feature names
+            \item \inlinecode{categorical\_features}: List of categorical feature names
+            \item \inlinecode{feature\_cols}: All feature names
+            \item \inlinecode{mad}: MAD values for continuous features (as pandas Series)
+        \end{itemize}
+    \item[Returns:] Tuple containing:
+        \begin{itemize}
+            \item \inlinecode{diversity\_distance}: Normalized pairwise distance metric
+            \item \inlinecode{diversity\_count}: Normalized feature change count metric
+        \end{itemize}
+    \item[Return type:] \inlinecode{tuple}
+\end{description}
+
+
+\subsection{\inlinecode{calc\_mad()}}
+\label{func:calc_mad}
+
+\begin{lstlisting}[language=Python, caption={Function Signature}]
+counterfactual_explainers.calculate_metrics.calc_mad(cf_row: pandas.Series) -> float
+\end{lstlisting}
+
+Calculate Median Absolute Deviation (MAD) for a given data row.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{cf\_row}: Pandas Series representing a single data row
+        \end{itemize}
+    \item[Returns:] MAD value as float. Returns 1.0 if MAD is zero to avoid division by zero.
+    \item[Return type:] \inlinecode{float}
+\end{description}
+
+
+\subsection{\inlinecode{calc\_range\_alignment()}}
+\label{func:calc_range_alignment}
+
+\begin{lstlisting}[language=Python, caption={Function Signature}]
+counterfactual_explainers.calculate_metrics.calc_range_alignment(
+    cfs_df: pandas.DataFrame, target_class_instances: pandas.DataFrame,
+    continuous_features: list[str], categorical_features: list[str]
+) -> float
+\end{lstlisting}
+
+Calculates the alignment between the value ranges of counterfactuals and the value ranges of actual instances belonging to the target class.
+
+For continuous features, it uses a discretization approach over the union range, then computes the Jaccard index using scipy. For categorical features, it creates binary indicator arrays for the sets of unique values and computes the Jaccard index using scipy.
+
+The scores are printed directly for each feature. % Note: Original text mentions printing; the function might do more than just return a single float.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{cfs\_df}: DataFrame of counterfactual instances (original, unencoded values).
+            \item \inlinecode{target\_class\_instances}: DataFrame containing only instances from the original dataset belonging to the target class (original, unencoded values).
+            \item \inlinecode{continuous\_features}: List of continuous feature names.
+            \item \inlinecode{categorical\_features}: List of categorical feature names.
+        \end{itemize}
+     % Note: No explicit 'Returns' block in the Sphinx source, but signature indicates float.
+     \item[Return type:] \inlinecode{float} % Based on signature, represents overall alignment perhaps?
+\end{description}
+
+
+\subsection{\inlinecode{calc\_size()}}
+\label{func:calc_size}
+
+\begin{lstlisting}[language=Python, caption={Function Signature}]
+counterfactual_explainers.calculate_metrics.calc_size(
+    num_required_cfs: int, cfs_df: pandas.DataFrame
+) -> float
+\end{lstlisting}
+
+Calculate size metric as ratio of generated CFs to required CFs.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{num\_required\_cfs}: Requested number of counterfactuals
+            \item \inlinecode{cfs\_df}: DataFrame containing generated counterfactuals
+        \end{itemize}
+    \item[Returns:] Size metric as float
+    \item[Return type:] \inlinecode{float}
+\end{description}
+
+
+\subsection{\inlinecode{calculate\_metrics\_for\_dataset()}}
+\label{func:calculate_metrics_for_dataset}
+
+\begin{lstlisting}[language=Python, caption={Function Signature}]
+counterfactual_explainers.calculate_metrics.calculate_metrics_for_dataset(
+    config: dict[str, Any], dataset: str
+) -> None
+\end{lstlisting}
+
+Calculate metrics for a dataset across models and explainers.
+
+\begin{description}
+    \item[Parameters:]
+        \begin{itemize}
+            \item \inlinecode{config}: Configuration dictionary
+            \item \inlinecode{dataset}: Dataset name to process
+        \end{itemize}
+\end{description}
+

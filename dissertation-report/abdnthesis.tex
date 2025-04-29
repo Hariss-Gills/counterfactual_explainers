@@ -1,0 +1,178 @@
+\documentclass[mscip, 12pt]{abdnthesis}
+% Select one of: bsc, ma, msciip, meng, msc, mphil, phd
+% Select one of 10pt, 11pt, 12pt. (BSc, MA, MScIP students must use 12pt.)
+ 
+%% For citations, I would recommend natbib for its                          
+%% flexibility, particularly when named citation styles are used, but                
+%% it also has useful features for plain and those of that ilk.                      
+%% The natbib package gives you the following definitons                             
+%% that extend the simple \cite:                                                     
+%   \citet{key} ==>>                Jones et al. (1990)                              
+%   \citet*{key} ==>>               Jones, Baker, and Smith (1990)                   
+%   \citep{key} ==>>                (Jones et al., 1990)                             
+%   \citep*{key} ==>>               (Jones, Baker, and Smith, 1990)                  
+%   \citep[chap. 2]{key} ==>>       (Jones et al., 1990, chap. 2)                    
+%   \citep[e.g.][]{key} ==>>        (e.g. Jones et al., 1990)                        
+%   \citep[e.g.][p. 32]{key} ==>>   (e.g. Jones et al., p. 32)                       
+%   \citeauthor{key} ==>>           Jones et al.                                     
+%   \citeauthor*{key} ==>>          Jones, Baker, and Smith                          
+%   \citeyear{key} ==>>             1990                                             
+\usepackage{parskip}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\definecolor{myLinkColor}{HTML}{0000EE}
+
+\hypersetup{
+    colorlinks=true,         % Use colored links instead of boxes
+    % linkcolor={myLinkColor}, % Set this AFTER the ToC if you prefer
+    citecolor={myLinkColor},     % Color for \cite links
+    filecolor={magenta},     % Color for file links
+    urlcolor={myLinkColor},      % Color for \url links
+    linktoc=all              % Make text and page numbers in ToC clickable (optional)
+}
+
+\usepackage[round,colon,authoryear]{natbib}
+\setlength{\bibsep}{0pt}
+\bibliographystyle{apalike}
+\usepackage{subcaption}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amssymb}
+\usepackage{siunitx}
+\usepackage{float}
+\usepackage{mdframed}
+
+\usepackage{listings}
+
+\lstdefinestyle{shell}{
+    language=bash,
+    basicstyle=\ttfamily\small,
+    frame=single,
+    breaklines=true,
+    showstringspaces=false,
+}
+
+
+% Define the colors
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Define the listing style
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+
+% Set the defined style as the default
+
+% Define GitHub-like colors
+\definecolor{ghbackground}{HTML}{F3F4F6}  % GitHub's background gray
+\definecolor{ghborder}{HTML}{D1D5DB}      % GitHub's border gray
+\definecolor{ghtext}{HTML}{24292E}        % GitHub's text color
+
+% Custom inline code style
+\newcommand{\inlinecode}[1]{%
+    \begingroup
+    \setlength{\fboxsep}{2pt}%         % Padding around text
+    \setlength{\fboxrule}{0.4pt}%       % Border thickness
+    \fcolorbox{ghborder}{ghbackground}{%  % Frame and background
+        \texttt{\color{ghtext}#1}%        % Monospace font with text color
+    }%
+    \endgroup
+}
+
+
+\title{Evaluating Contrastive Explanations: Rolling the DiCE with AIDE}
+\author{Hariss Ali Gills}
+% IMO this is a bit silly, but some like to include these. To remove,
+% delete this declaration and remove the option from the
+% \documentclass definition above.
+%\qualifications{PhD, Computer Science, University College London, 1997\\%            
+%BEng (Hons.) Electrical and Electronic Engineering, The University of Wales, Swansea, 1992}
+\school{Department of Computing Science}
+
+%%%% In the final submission of a thesis, this should only be the year
+%%%% of submission.  However, it is useful to use \date{\today} for drafts so that
+%%%% they don't get mixed up.
+    
+\date{2025}
+
+%% It is useful to split the document up as chapters and include
+%% them.  LaTeX will sort out all the numbering and cross-referencing
+%% for you --- if you run it enough times!
+
+%% If you want to include only a couple of chapters then use the
+%% \includeonly{} command with a list of the file/chapter names that
+%% you wish to include.  NB, this must be in the preamble.
+
+% \includeonly{introduction,faq}
+
+\def\sfthing#1#2{\def#1{\mbox{{\small\normalfont\sffamily #2}}}}
+
+\sfthing{\PP}{P}
+\sfthing{\FF}{F}
+
+%% This will make sure that all cross-references are correct (including
+%% references to those file not included) but will produce a dvi
+%% file with only those files/chapters you specify included.
+
+\begin{document}
+
+%%%% Create the title page and standard declaration.
+
+\maketitle
+\makedeclaration
+
+%%%% Then the abstract and acknowledgements
+
+\begin{abstract}
+This dissertation addresses the critical need for explainability in opaque machine learning models by evaluating and comparing contrastive counterfactual explanation methods. Specifically, it investigates the performance of Diverse Counterfactual Explanations (DiCE), its genetic variant based on GeCo, and the immune-inspired Artificial Immune Diverse Explanations (AIDE) algorithm. The study employs a mixed-methods approach, combining quantitative evaluation across established metrics (including Size, Dissimilarity, Actionability, Diversity, and Runtime) with qualitative analysis using parallel coordinate plots on four standard benchmark datasets (adult, fico, compas, german\_credit). Quantitative results indicate that no single method universally outperforms others; which is in agreement with what has been reported in the literature. DiCE typically generates explanations closest to the original instance, while AIDE excels in producing diverse and actionable explanations, albeit at a higher computational cost. The genetic DiCE variant offers the fastest performance but can struggle with consistency. Using principles in Exploratory Data Analysis, parallel coordinates plots were used to visualize the counterfactuals. By going deeper, this analysis highlights differences in how methods handle feature types and how the counterfactuals align with dataset. Hence, a novel "Alignment" metric is proposed to assess the realism of generated counterfactuals relative to the data distribution of the counterfactual class, capturing the "concentration" of values. The evaluation study with the new metric concludes that the optimal choice of counterfactual explainer depends on the specific dataset. Additionally, implementations might consider employing a combination of counterfactual methods within an XAI system. Knowing that good explanations are also selective, the system should select the explanation based on the relative importance of different evaluation metrics from the end-user's perspective.
+
+\end{abstract}
+
+\begin{acknowledgements}
+I would like to express my sincere gratitude to my supervisor, Dr. Yaji Sripada, whose guidance and expertise were invaluable throughout this project. Thank you for allowing me to explore this research area and for the insightful discussions we had.
+
+My appreciation also extends to the lecturers and staff within the Department of Computing Science at the University of Aberdeen. The knowledge and support provided during my studies created a stimulating and enjoyable learning environment.
+
+I am incredibly grateful to my family, Adams Ali Gills, Mehmood Riaz Gill, and Marina Gilla, for their unwavering support throughout my studies and for their help in proofreading this paper.
+
+A special thank you also goes to my friends, Josh Shayo, Zsolt Kebel, Gergana Ivaylova, Ludovico Chiavelli,  and Klara Kramer, for their support and friendship during this long five year journey.
+\end{acknowledgements}
+
+\hypersetup{linkcolor=black}
+\tableofcontents
+\listoftables
+\listoffigures
+\hypersetup{linkcolor=myLinkColor}
+
+\include{introduction}
+\include{chapters/introduction/introduction}
+\include{chapters/background/background}
+\include{chapters/problem-spec/problem-spec}
+\include{chapters/implementation/implementation}
+\include{chapters/evaluation/evaluation}
+\include{chapters/conclusion/conclusion}
+
+\bibliography{mybib}
+\appendix
+\include{chapters/appendix-1/appendix-1}
+\include{chapters/appendix-2/appendix-2}
+\end{document}
